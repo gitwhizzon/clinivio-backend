@@ -18,6 +18,7 @@ export * from "./notification-log.entity";
 export * from "./ipd.entity";
 export * from "./lab.entity";
 export * from "./audit-log.entity";
+export * from "./ot.entity";
 
 // Convenience: all entities as array for TypeORM forFeature / forRoot
 import { Tenant } from "./tenant.entity";
@@ -59,6 +60,7 @@ import {
   LabReagentUsage,
 } from "./lab.entity";
 import { AuditLog } from "./audit-log.entity";
+import { OTTheater, OTSchedule, OTRecord } from "./ot.entity";
 
 export const ALL_ENTITIES = [
   Tenant,
@@ -95,4 +97,7 @@ export const ALL_ENTITIES = [
   LabReagent,
   LabReagentUsage,
   AuditLog,
+  OTTheater,
+  OTSchedule,
+  OTRecord,
 ];
