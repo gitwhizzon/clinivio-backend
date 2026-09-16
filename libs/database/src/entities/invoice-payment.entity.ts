@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
@@ -20,7 +21,8 @@ import { Invoice } from './invoice.entity';
 @Entity('invoice_payments')
 @Index(['tenantId', 'paidAt'])
 export class InvoicePayment {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

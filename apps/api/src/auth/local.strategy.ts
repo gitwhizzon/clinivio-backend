@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-local';
-import type { Request } from 'express';
-import { AuthService } from './auth.service';
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import { PassportStrategy } from "@nestjs/passport";
+import { Strategy } from "passport-local";
+import type { Request } from "express";
+import { AuthService } from "./auth.service";
 
 /**
  * Passport local strategy — validates email + password.
@@ -22,18 +22,30 @@ import { AuthService } from './auth.service';
  */
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(LocalStrategy.name);
+
   constructor(private authService: AuthService) {
     super({ usernameField: 'identifier', passReqToCallback: true });
   }
 
   async validate(
     req: Request,
-    identifier: string,
+    identifier: string | undefined,
     password: string,
   ): Promise<any> {
-    const { tenantId, slug } = req.body as { tenantId?: string; slug?: string };
+    const { tenantId, slug, email } = req.body as {
+      tenantId?: string;
+      slug?: string;
+      email?: string;
+    };
+    const resolvedIdentifier = identifier?.trim() || email?.trim();
+    if (!resolvedIdentifier) {
+      this.logger.warn(
+        `Login request missing identifier/email tenantId=${tenantId ?? "none"} slug=${slug ?? "none"}`,
+      );
+    }
     const user = await this.authService.validateUser(
-      identifier,
+      resolvedIdentifier ?? "",
       password,
       tenantId,
       slug,

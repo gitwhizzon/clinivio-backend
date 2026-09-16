@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -20,7 +21,8 @@ import { Department } from './department.entity';
 @Entity('billable_services')
 @Unique('tenant_billable_service_code_unique', ['tenantId', 'code'])
 export class BillableService {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -14,7 +15,8 @@ import { Patient } from './patient.entity';
 
 @Entity('invoices')
 export class Invoice {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

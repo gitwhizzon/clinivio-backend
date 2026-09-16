@@ -62,6 +62,22 @@ export enum DiscountType {
   FLAT = 'FLAT',
 }
 
+export enum EmiFrequency {
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+}
+
+export enum EmiPlanStatus {
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum EmiInstallmentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+}
+
 export enum InvoiceType {
   CONSULTATION = 'CONSULTATION',
   PHARMACY = 'PHARMACY',

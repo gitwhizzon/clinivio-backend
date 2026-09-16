@@ -305,7 +305,7 @@ export class AppointmentsService {
       doctorId?: string;
       departmentId?: string;
       date?: string;
-      paymentStatus?: PaymentStatus;
+      paymentStatus?: PaymentStatus | PaymentStatus[];
     },
   ) {
     const today = filters.date ? new Date(filters.date) : new Date();
@@ -329,13 +329,16 @@ export class AppointmentsService {
         departmentId: filters.departmentId,
       });
 
-    // When paymentStatus filter is supplied (e.g. billing counter querying PENDING),
-    // return only today's appointments matching that payment status.
+    // When paymentStatus filter is supplied (e.g. billing counter querying
+    // PENDING and PARTIALLY_PAID so patients don't vanish from the queue
+    // after a partial/EMI payment), return only today's appointments
+    // matching one of the given statuses.
     if (filters.paymentStatus) {
-      qb.andWhere('appt.paymentStatus = :paymentStatus', {
-        paymentStatus: filters.paymentStatus,
-      })
-        .andWhere('appt.createdAt BETWEEN :startOfDay AND :endOfDay', {
+      const statuses = Array.isArray(filters.paymentStatus)
+        ? filters.paymentStatus
+        : [filters.paymentStatus];
+      qb.andWhere("appt.paymentStatus IN (:...statuses)", { statuses })
+        .andWhere("appt.createdAt BETWEEN :startOfDay AND :endOfDay", {
           startOfDay,
           endOfDay,
         })

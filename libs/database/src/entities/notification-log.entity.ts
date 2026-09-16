@@ -1,40 +1,42 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { NotificationChannel, NotificationStatus } from './enums';
-import { Tenant } from './tenant.entity';
-import { Patient } from './patient.entity';
+} from "typeorm";
+import { NotificationChannel, NotificationStatus } from "./enums";
+import { Tenant } from "./tenant.entity";
+import { Patient } from "./patient.entity";
 
-@Entity('notification_logs')
+@Entity("notification_logs")
 export class NotificationLog {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
-  @Column({ name: 'tenant_id' })
+  @Column({ name: "tenant_id" })
   tenantId: string;
 
-  @Column({ name: 'patient_id' })
+  @Column({ name: "patient_id" })
   patientId: string;
 
-  @Column({ type: 'enum', enum: NotificationChannel })
+  @Column({ type: "enum", enum: NotificationChannel })
   channel: NotificationChannel;
 
-  @Column({ name: 'notification_type' })
+  @Column({ name: "notification_type" })
   notificationType: string;
 
-  @Column({ name: 'template_id', nullable: true })
+  @Column({ name: "template_id", nullable: true })
   templateId: string | null;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: "jsonb" })
   payload: any;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: NotificationStatus,
     default: NotificationStatus.QUEUED,
   })
@@ -43,29 +45,29 @@ export class NotificationLog {
   @Column({ nullable: true })
   wamid: string | null;
 
-  @Column({ name: 'sent_at', type: 'timestamptz', nullable: true })
+  @Column({ name: "sent_at", type: "timestamptz", nullable: true })
   sentAt: Date | null;
 
-  @Column({ name: 'delivered_at', type: 'timestamptz', nullable: true })
+  @Column({ name: "delivered_at", type: "timestamptz", nullable: true })
   deliveredAt: Date | null;
 
-  @Column({ name: 'read_at', type: 'timestamptz', nullable: true })
+  @Column({ name: "read_at", type: "timestamptz", nullable: true })
   readAt: Date | null;
 
-  @Column({ name: 'failure_reason', nullable: true })
+  @Column({ name: "failure_reason", nullable: true })
   failureReason: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: 'CASCADE',
+    onDelete: "CASCADE",
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: 'tenant_id' })
+  @JoinColumn({ name: "tenant_id" })
   tenant: Tenant;
 
-  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'patient_id' })
+  @ManyToOne(() => Patient, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "patient_id" })
   patient: Patient;
 }

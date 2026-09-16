@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -21,7 +22,8 @@ import { User } from './user.entity';
 @Unique('tenant_lab_test_code_unique', ['tenantId', 'code'])
 @Index(['tenantId'])
 export class LabTest {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -85,7 +87,8 @@ export class LabTest {
 @Index(['tenantId', 'status'])
 @Index(['tenantId', 'patientId'])
 export class LabOrder {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -195,7 +198,8 @@ export class LabOrder {
 
 @Entity('lab_order_items')
 export class LabOrderItem {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'lab_order_id' })
@@ -248,7 +252,8 @@ export class LabOrderItem {
 
 @Entity('lab_reagents')
 export class LabReagent {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -318,7 +323,8 @@ export class LabReagent {
 
 @Entity('lab_reagent_usage')
 export class LabReagentUsage {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

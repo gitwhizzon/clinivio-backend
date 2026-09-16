@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -18,7 +19,8 @@ import { PatientFamily } from './patient-family.entity';
 @Index(['tenantId', 'phone'])
 @Index(['tenantId', 'familyId'])
 export class Patient {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

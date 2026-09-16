@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
@@ -10,7 +11,8 @@ import { SubscriptionTier } from './enums';
 
 @Entity('tenants')
 export class Tenant {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column()

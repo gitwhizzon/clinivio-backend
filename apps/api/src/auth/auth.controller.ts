@@ -16,14 +16,20 @@ import {
   IsOptional,
   IsUUID,
   MinLength,
-} from 'class-validator';
-import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+  ValidateIf,
+} from "class-validator";
+import { AuthService } from "./auth.service";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
 class LoginDto {
+  @ValidateIf((o) => !o.email)
   @IsString()
   identifier: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @IsString()
   password: string;
@@ -81,7 +87,8 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Login with email, password, and optional tenantId',
+    summary:
+      "Login with identifier/email, password, and optional tenantId or slug",
   })
   async login(@Body() _dto: LoginDto, @Request() req: any) {
     return this.authService.login(req.user);

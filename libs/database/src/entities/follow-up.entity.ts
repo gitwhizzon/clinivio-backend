@@ -1,59 +1,61 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { Tenant } from './tenant.entity';
-import { Consultation } from './consultation.entity';
-import { Patient } from './patient.entity';
+} from "typeorm";
+import { Tenant } from "./tenant.entity";
+import { Consultation } from "./consultation.entity";
+import { Patient } from "./patient.entity";
 
-@Entity('follow_ups')
+@Entity("follow_ups")
 export class FollowUp {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
-  @Column({ name: 'tenant_id' })
+  @Column({ name: "tenant_id" })
   tenantId: string;
 
-  @Column({ name: 'consultation_id' })
+  @Column({ name: "consultation_id" })
   consultationId: string;
 
-  @Column({ name: 'patient_id' })
+  @Column({ name: "patient_id" })
   patientId: string;
 
-  @Column({ name: 'doctor_id' })
+  @Column({ name: "doctor_id" })
   doctorId: string;
 
-  @Column({ name: 'follow_up_date', type: 'date' })
+  @Column({ name: "follow_up_date", type: "date" })
   followUpDate: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   notes: string | null;
 
-  @Column({ name: 'reminder_sent_at', type: 'timestamptz', nullable: true })
+  @Column({ name: "reminder_sent_at", type: "timestamptz", nullable: true })
   reminderSentAt: Date | null;
 
-  @Column({ name: 'is_completed', default: false })
+  @Column({ name: "is_completed", default: false })
   isCompleted: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: 'CASCADE',
+    onDelete: "CASCADE",
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: 'tenant_id' })
+  @JoinColumn({ name: "tenant_id" })
   tenant: Tenant;
 
-  @ManyToOne(() => Consultation, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'consultation_id' })
+  @ManyToOne(() => Consultation, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "consultation_id" })
   consultation: Consultation;
 
-  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'patient_id' })
+  @ManyToOne(() => Patient, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "patient_id" })
   patient: Patient;
 }

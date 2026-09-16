@@ -32,9 +32,10 @@ import { IpdModule } from './ipd/ipd.module';
 import { LabModule } from './lab/lab.module';
 
 // Billing
-import { InvoicesModule } from './invoices/invoices.module';
-import { PaymentsModule } from './payments/payments.module';
-import { BillableServicesModule } from './billable-services/billable-services.module';
+import { InvoicesModule } from "./invoices/invoices.module";
+import { PaymentsModule } from "./payments/payments.module";
+import { BillableServicesModule } from "./billable-services/billable-services.module";
+import { EmiModule } from "./emi/emi.module";
 
 // Notifications & Messaging
 import { EmailModule } from './email/email.module';
@@ -133,6 +134,7 @@ import { AiModule } from './ai/ai.module';
     InvoicesModule,
     PaymentsModule,
     BillableServicesModule,
+    EmiModule,
 
     // ── Notifications & Messaging ─────────────────────────────────────────────────
     EmailModule,

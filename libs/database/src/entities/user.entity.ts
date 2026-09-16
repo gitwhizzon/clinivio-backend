@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -17,7 +18,8 @@ import { Tenant } from './tenant.entity';
 @Unique('tenant_user_email_unique', ['tenantId', 'email'])
 @Unique('tenant_staff_id_unique', ['tenantId', 'staffId'])
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })

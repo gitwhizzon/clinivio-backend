@@ -1,7 +1,8 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -16,7 +17,8 @@ import { Patient } from './patient.entity';
 
 @Entity('pharmacy_orders')
 export class PharmacyOrder {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -70,7 +72,8 @@ export class PharmacyOrder {
 
 @Entity('pharmacy_inventory')
 export class PharmacyInventory {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -146,7 +149,8 @@ export class PharmacyInventory {
 
 @Entity('pharmacy_purchases')
 export class PharmacyPurchase {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -207,7 +211,8 @@ export class PharmacyPurchase {
 
 @Entity('pharmacy_purchase_items')
 export class PharmacyPurchaseItem {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: "text" })
+  @Generated("uuid")
   id: string;
 
   @Column({ name: 'purchase_id' })

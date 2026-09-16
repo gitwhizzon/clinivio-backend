@@ -76,7 +76,11 @@ export class AppointmentsController {
       doctorId,
       departmentId,
       date,
-      paymentStatus: paymentStatus as any,
+      // Accepts a single status or a comma-separated list, e.g.
+      // "PENDING,PARTIALLY_PAID" so partially-paid/EMI patients still show.
+      paymentStatus: paymentStatus
+        ? (paymentStatus.split(",") as any)
+        : undefined,
     });
   }
 
