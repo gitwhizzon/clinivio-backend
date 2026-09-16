@@ -1,7 +1,7 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn, Generated,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
@@ -26,7 +26,8 @@ import { Patient } from './patient.entity';
 @Index(['tenantId'])
 @Index(['tenantId', 'status'])
 export class OTTheater {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: 'text' })
+  @Generated('uuid')
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -81,7 +82,8 @@ export class OTTheater {
 @Index(['tenantId', 'theaterId'])
 @Index(['tenantId', 'status'])
 export class OTSchedule {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: 'text' })
+  @Generated('uuid')
   id: string;
 
   @Column({ name: 'tenant_id' })
@@ -187,7 +189,8 @@ export class OTSchedule {
 @Entity('ot_records')
 @Index(['tenantId'])
 export class OTRecord {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn({ type: 'text' })
+  @Generated('uuid')
   id: string;
 
   @Column({ name: 'tenant_id' })
