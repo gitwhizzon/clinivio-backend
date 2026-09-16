@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Post, Patch, Param, Body, Query,
-  DefaultValuePipe, ParseIntPipe, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -44,7 +52,12 @@ export class IpdController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
   ) {
-    return this.svc.findAll(tenantId, { status: status as any, patientId }, page, limit);
+    return this.svc.findAll(
+      tenantId,
+      { status: status as any, patientId },
+      page,
+      limit,
+    );
   }
 
   // ─── Admit patient ─────────────────────────────────────────────────────────
@@ -141,13 +154,19 @@ export class IpdController {
   @Patch('treatments/:treatmentId')
   @Roles('ADMIN', 'DOCTOR', 'NURSE')
   @ApiOperation({ summary: 'End/update a treatment' })
-  endTreatment(@Param('treatmentId') treatmentId: string, @TenantId() tenantId: string) {
+  endTreatment(
+    @Param('treatmentId') treatmentId: string,
+    @TenantId() tenantId: string,
+  ) {
     return this.svc.endTreatment(treatmentId, tenantId);
   }
 
   @Post('treatments/:treatmentId/end')
   @Roles('ADMIN', 'DOCTOR', 'NURSE')
-  endTreatmentPost(@Param('treatmentId') treatmentId: string, @TenantId() tenantId: string) {
+  endTreatmentPost(
+    @Param('treatmentId') treatmentId: string,
+    @TenantId() tenantId: string,
+  ) {
     return this.svc.endTreatment(treatmentId, tenantId);
   }
 

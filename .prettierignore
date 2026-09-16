@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.turbo
+pnpm-lock.yaml
+*.tsbuildinfo
+__azurite_db_*.json
+server.err

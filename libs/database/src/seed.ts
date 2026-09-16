@@ -22,7 +22,7 @@ dotenv.config({ path: '.env' });
 
 // ─── Stable IDs ───────────────────────────────────────────────────────────────
 const PLATFORM_TENANT_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
-const PLATFORM_ADMIN_ID  = 'aaaaaaaa-aaaa-aaaa-aaaa-000000000001';
+const PLATFORM_ADMIN_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-000000000001';
 
 async function hash(password: string) {
   return bcrypt.hash(password, 12);
@@ -64,7 +64,7 @@ function makeSslOption(isProd: boolean) {
 
 async function main() {
   const isProd = process.env.NODE_ENV === 'production';
-  const dbUrl  = process.env.DATABASE_URL!;
+  const dbUrl = process.env.DATABASE_URL!;
   if (!dbUrl) throw new Error('DATABASE_URL not set');
 
   const platformDs = new DataSource({
@@ -77,14 +77,14 @@ async function main() {
   await platformDs.initialize();
   console.log('🌱  Seeding database...\n');
 
-  const tenantRepo       = platformDs.getRepository(Tenant);
+  const tenantRepo = platformDs.getRepository(Tenant);
   const platformUserRepo = platformDs.getRepository(User);
 
   // ── Clinivio Platform tenant (public schema) ──────────────────────────────
   await upsertTenant(tenantRepo, PLATFORM_TENANT_ID, {
-    name:             'Clinivio Platform',
+    name: 'Clinivio Platform',
     subscriptionTier: SubscriptionTier.ENTERPRISE,
-    isActive:         true,
+    isActive: true,
   });
 
   // ── Platform SUPER_ADMIN ──────────────────────────────────────────────────
@@ -92,23 +92,29 @@ async function main() {
     platformUserRepo,
     { id: PLATFORM_ADMIN_ID },
     {
-      tenantId:     PLATFORM_TENANT_ID,
-      email:        'superadmin@whizzon.ai',
+      tenantId: PLATFORM_TENANT_ID,
+      email: 'superadmin@whizzon.ai',
       passwordHash: await hash('SuperAdmin@123'),
-      firstName:    'Whizzon',
-      lastName:     'Admin',
-      role:         Role.SUPER_ADMIN,
-      isActive:     true,
+      firstName: 'Whizzon',
+      lastName: 'Admin',
+      role: Role.SUPER_ADMIN,
+      isActive: true,
     },
   );
-  console.log('  ✓ SUPER_ADMIN   superadmin@whizzon.ai  (SuperAdmin@123)  [public schema]');
+  console.log(
+    '  ✓ SUPER_ADMIN   superadmin@whizzon.ai  (SuperAdmin@123)  [public schema]',
+  );
 
   console.log('');
   console.log('✅  Seed complete!\n');
   console.log('  Platform login:');
-  console.log('    POST /auth/login  { "email": "superadmin@whizzon.ai", "password": "SuperAdmin@123" }');
+  console.log(
+    '    POST /auth/login  { "email": "superadmin@whizzon.ai", "password": "SuperAdmin@123" }',
+  );
   console.log('');
-  console.log('  Onboard hospitals via the SuperAdmin UI → /hospitals → "+ Onboard Hospital"');
+  console.log(
+    '  Onboard hospitals via the SuperAdmin UI → /hospitals → "+ Onboard Hospital"',
+  );
 
   await platformDs.destroy();
 }

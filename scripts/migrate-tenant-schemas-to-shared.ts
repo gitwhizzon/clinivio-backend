@@ -15,22 +15,22 @@
  *
  * Safe to re-run: every insert uses `ON CONFLICT (id) DO NOTHING`.
  */
-import "reflect-metadata";
-import { DataSource } from "typeorm";
-import * as dotenv from "dotenv";
-import { ALL_ENTITIES, Tenant } from "../libs/database/src/entities";
+import 'reflect-metadata';
+import { DataSource } from 'typeorm';
+import * as dotenv from 'dotenv';
+import { ALL_ENTITIES, Tenant } from '../libs/database/src/entities';
 
-dotenv.config({ path: ".env.local" });
-dotenv.config({ path: ".env" });
+dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
 
 async function main() {
   const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) throw new Error("DATABASE_URL not set in environment");
+  if (!dbUrl) throw new Error('DATABASE_URL not set in environment');
 
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.NODE_ENV === 'production';
 
   const ds = new DataSource({
-    type: "postgres",
+    type: 'postgres',
     url: dbUrl,
     entities: ALL_ENTITIES,
     synchronize: false,
@@ -39,7 +39,7 @@ async function main() {
 
   await ds.initialize();
   console.log(
-    "\n🔀  Migrating tenant schemas into the shared public schema...\n",
+    '\n🔀  Migrating tenant schemas into the shared public schema...\n',
   );
 
   // ── 1. Find every tenant_% schema ─────────────────────────────────────────
@@ -48,13 +48,13 @@ async function main() {
   );
 
   if (schemas.length === 0) {
-    console.log("No tenant_% schemas found — nothing to migrate.\n");
+    console.log('No tenant_% schemas found — nothing to migrate.\n');
     await ds.destroy();
     return;
   }
 
   console.log(
-    `Found ${schemas.length} tenant schema(s): ${schemas.map((s) => s.schema_name).join(", ")}\n`,
+    `Found ${schemas.length} tenant schema(s): ${schemas.map((s) => s.schema_name).join(', ')}\n`,
   );
 
   // Tenant rows already live in public — nothing to copy for that entity.
@@ -62,7 +62,7 @@ async function main() {
   const mismatches: string[] = [];
 
   for (const { schema_name: schema } of schemas) {
-    const slug = schema.replace(/^tenant_/, "");
+    const slug = schema.replace(/^tenant_/, '');
     console.log(`── ${schema} ──────────────────────────────────────────`);
 
     for (const entity of tableEntities) {
@@ -102,7 +102,7 @@ async function main() {
       );
       const dstCount = dstCountRes[0]?.count ?? 0;
 
-      const status = dstCount >= srcCount ? "✓" : "✗ MISMATCH";
+      const status = dstCount >= srcCount ? '✓' : '✗ MISMATCH';
       console.log(
         `  ${status}  ${table.padEnd(28)} src=${srcCount}  dst(tenant rows)=${dstCount}`,
       );
@@ -111,25 +111,25 @@ async function main() {
         mismatches.push(`${schema}.${table}: src=${srcCount} dst=${dstCount}`);
       }
     }
-    console.log("");
+    console.log('');
   }
 
   if (mismatches.length) {
     console.log(
-      "⚠️  Mismatches detected — investigate before dropping old schemas:",
+      '⚠️  Mismatches detected — investigate before dropping old schemas:',
     );
     mismatches.forEach((m) => console.log(`   - ${m}`));
   } else {
-    console.log("✅  All tables migrated with matching row counts.");
+    console.log('✅  All tables migrated with matching row counts.');
   }
   console.log(
-    "\nOld tenant_<slug> schemas were NOT dropped. Verify the data, then drop them manually.\n",
+    '\nOld tenant_<slug> schemas were NOT dropped. Verify the data, then drop them manually.\n',
   );
 
   await ds.destroy();
 }
 
 main().catch((e) => {
-  console.error("\n❌  Migration failed:", e.message);
+  console.error('\n❌  Migration failed:', e.message);
   process.exit(1);
 });

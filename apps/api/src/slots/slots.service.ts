@@ -4,7 +4,11 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { DoctorSlot, DoctorProfile, TenantEntityManager } from '@mediflow/database';
+import {
+  DoctorSlot,
+  DoctorProfile,
+  TenantEntityManager,
+} from '@mediflow/database';
 
 export class CreateSlotDto {
   doctorId: string;
@@ -36,14 +40,16 @@ export class SlotsService {
       .where('slot.tenantId = :tenantId', { tenantId })
       .andWhere('slot.doctorId = :doctorId', { doctorId: dto.doctorId })
       .andWhere('slot.slotDate = :slotDate', { slotDate: dto.slotDate })
-      .andWhere(
-        `(slot.startTime < :endTime AND slot.endTime > :startTime)`,
-        { startTime: dto.startTime, endTime: dto.endTime },
-      )
+      .andWhere(`(slot.startTime < :endTime AND slot.endTime > :startTime)`, {
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+      })
       .getOne();
 
     if (existing) {
-      throw new ConflictException('Overlapping slot already exists for this doctor and date');
+      throw new ConflictException(
+        'Overlapping slot already exists for this doctor and date',
+      );
     }
 
     return this.db.repo(DoctorSlot).save(
@@ -94,7 +100,8 @@ export class SlotsService {
 
     if (!slotsToCreate.length) return { count: 0 };
 
-    const result = await this.db.repo(DoctorSlot)
+    const result = await this.db
+      .repo(DoctorSlot)
       .createQueryBuilder()
       .insert()
       .into(DoctorSlot)
@@ -142,7 +149,8 @@ export class SlotsService {
           .andWhere('slot.isBlocked = false')
           .andWhere('slot.bookedCount < slot.maxPatients');
 
-        if (fromDate) slotsQb.andWhere('slot.slotDate >= :fromDate', { fromDate });
+        if (fromDate)
+          slotsQb.andWhere('slot.slotDate >= :fromDate', { fromDate });
         if (toDate) slotsQb.andWhere('slot.slotDate <= :toDate', { toDate });
 
         const slots = await slotsQb
@@ -156,7 +164,9 @@ export class SlotsService {
   }
 
   async findSlotById(id: string, tenantId: string) {
-    const slot = await this.db.repo(DoctorSlot).findOne({ where: { id, tenantId } });
+    const slot = await this.db
+      .repo(DoctorSlot)
+      .findOne({ where: { id, tenantId } });
     if (!slot) throw new NotFoundException('Slot not found');
     return slot;
   }
@@ -164,27 +174,38 @@ export class SlotsService {
   async blockSlot(id: string, tenantId: string, reason?: string) {
     const slot = await this.findSlotById(id, tenantId);
     if (slot.isBlocked) throw new ConflictException('Slot is already blocked');
-    await this.db.repo(DoctorSlot).update(id, { isBlocked: true, blockReason: reason ?? null });
+    await this.db
+      .repo(DoctorSlot)
+      .update(id, { isBlocked: true, blockReason: reason ?? null });
     return this.db.repo(DoctorSlot).findOne({ where: { id } });
   }
 
   async unblockSlot(id: string, tenantId: string) {
     const slot = await this.findSlotById(id, tenantId);
     if (!slot.isBlocked) throw new BadRequestException('Slot is not blocked');
-    await this.db.repo(DoctorSlot).update(id, { isBlocked: false, blockReason: null });
+    await this.db
+      .repo(DoctorSlot)
+      .update(id, { isBlocked: false, blockReason: null });
     return this.db.repo(DoctorSlot).findOne({ where: { id } });
   }
 
   async deleteSlot(id: string, tenantId: string) {
     const slot = await this.findSlotById(id, tenantId);
     if (slot.bookedCount > 0) {
-      throw new BadRequestException('Cannot delete slot with existing bookings');
+      throw new BadRequestException(
+        'Cannot delete slot with existing bookings',
+      );
     }
     await this.db.repo(DoctorSlot).delete(id);
     return { deleted: true };
   }
 
-  async findDoctorSlots(tenantId: string, doctorId: string, from?: string, to?: string) {
+  async findDoctorSlots(
+    tenantId: string,
+    doctorId: string,
+    from?: string,
+    to?: string,
+  ) {
     const qb = this.db
       .qb(DoctorSlot, 'slot')
       .where('slot.tenantId = :tenantId', { tenantId })
@@ -193,6 +214,9 @@ export class SlotsService {
     if (from) qb.andWhere('slot.slotDate >= :from', { from });
     if (to) qb.andWhere('slot.slotDate <= :to', { to });
 
-    return qb.orderBy('slot.slotDate', 'ASC').addOrderBy('slot.startTime', 'ASC').getMany();
+    return qb
+      .orderBy('slot.slotDate', 'ASC')
+      .addOrderBy('slot.startTime', 'ASC')
+      .getMany();
   }
 }

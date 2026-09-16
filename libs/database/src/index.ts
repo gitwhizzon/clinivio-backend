@@ -24,4 +24,12 @@ export {
   Raw,
   FindOperator,
 } from 'typeorm';
-export type { FindOptionsWhere, FindManyOptions, FindOneOptions, Repository, DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
+export type {
+  FindOptionsWhere,
+  FindManyOptions,
+  FindOneOptions,
+  Repository,
+  DataSource,
+  EntityManager,
+  SelectQueryBuilder,
+} from 'typeorm';

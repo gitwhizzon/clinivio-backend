@@ -1,20 +1,15 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
-import { v4 as uuidv4 } from "uuid";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Consultation,
   Prescription,
   PrescriptionItem,
   FollowUp,
   Appointment,
-  AppointmentStatus,
   TenantEntityManager,
-} from "@mediflow/database";
-import { KafkaProducerService } from "../kafka/kafka-producer.service";
-import { KAFKA_TOPICS } from "@mediflow/shared";
+} from '@mediflow/database';
+import { KafkaProducerService } from '../kafka/kafka-producer.service';
+import { KAFKA_TOPICS } from '@mediflow/shared';
 
 export class VitalsDto {
   bpSystolic?: number;
@@ -67,11 +62,11 @@ export class ConsultationService {
     return this.db.repo(Consultation).findOne({
       where: { id },
       relations: [
-        "prescriptions",
-        "prescriptions.items",
-        "followUps",
-        "patient",
-        "doctor",
+        'prescriptions',
+        'prescriptions.items',
+        'followUps',
+        'patient',
+        'doctor',
       ],
     });
   }
@@ -80,7 +75,7 @@ export class ConsultationService {
     const appointment = await this.db.repo(Appointment).findOne({
       where: { id: appointmentId, tenantId },
     });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
 
     let consultation = await this.db.repo(Consultation).findOne({
       where: { appointmentId },
@@ -109,7 +104,7 @@ export class ConsultationService {
     const appointment = await this.db.repo(Appointment).findOne({
       where: { id: appointmentId, tenantId },
     });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
 
     let consultation = await this.db
       .repo(Consultation)
@@ -164,7 +159,7 @@ export class ConsultationService {
 
     await this.kafka.emit(KAFKA_TOPICS.CONSULTATION_SAVED, {
       eventId: uuidv4(),
-      eventType: "consultation.saved",
+      eventType: 'consultation.saved',
       tenantId,
       timestamp: new Date().toISOString(),
       data: {
@@ -189,7 +184,7 @@ export class ConsultationService {
       .findOne({ where: { appointmentId } });
     if (!consultation)
       throw new NotFoundException(
-        "Consultation not found. Start consultation first.",
+        'Consultation not found. Start consultation first.',
       );
 
     const prescription = await this.db.repo(Prescription).save(
@@ -222,7 +217,7 @@ export class ConsultationService {
 
     await this.kafka.emit(KAFKA_TOPICS.PRESCRIPTION_CREATED, {
       eventId: uuidv4(),
-      eventType: "prescription.created",
+      eventType: 'prescription.created',
       tenantId,
       timestamp: new Date().toISOString(),
       data: {
@@ -236,7 +231,7 @@ export class ConsultationService {
 
     return this.db.repo(Prescription).findOne({
       where: { id: prescription.id },
-      relations: ["items"],
+      relations: ['items'],
     });
   }
 
@@ -248,7 +243,7 @@ export class ConsultationService {
     const prescription = await this.db.repo(Prescription).findOne({
       where: { id: prescriptionId, tenantId },
     });
-    if (!prescription) throw new NotFoundException("Prescription not found");
+    if (!prescription) throw new NotFoundException('Prescription not found');
 
     await this.db
       .repo(Prescription)
@@ -275,7 +270,7 @@ export class ConsultationService {
 
     return this.db.repo(Prescription).findOne({
       where: { id: prescriptionId },
-      relations: ["items"],
+      relations: ['items'],
     });
   }
 
@@ -287,7 +282,7 @@ export class ConsultationService {
     const consultation = await this.db
       .repo(Consultation)
       .findOne({ where: { appointmentId } });
-    if (!consultation) throw new NotFoundException("Consultation not found");
+    if (!consultation) throw new NotFoundException('Consultation not found');
 
     return this.db.repo(FollowUp).save(
       this.db.repo(FollowUp).create({
@@ -306,7 +301,7 @@ export class ConsultationService {
     const followUp = await this.db
       .repo(FollowUp)
       .findOne({ where: { id: followUpId, tenantId } });
-    if (!followUp) throw new NotFoundException("Follow-up not found");
+    if (!followUp) throw new NotFoundException('Follow-up not found');
     await this.db.repo(FollowUp).update(followUpId, { isCompleted: true });
     return this.db.repo(FollowUp).findOne({ where: { id: followUpId } });
   }
@@ -315,16 +310,16 @@ export class ConsultationService {
     const consultation = await this.db.repo(Consultation).findOne({
       where: { appointmentId },
       relations: [
-        "prescriptions",
-        "prescriptions.items",
-        "followUps",
-        "patient",
-        "doctor",
+        'prescriptions',
+        'prescriptions.items',
+        'followUps',
+        'patient',
+        'doctor',
       ],
     });
-    if (!consultation) throw new NotFoundException("Consultation not found");
+    if (!consultation) throw new NotFoundException('Consultation not found');
     if (consultation.tenantId !== tenantId)
-      throw new NotFoundException("Consultation not found");
+      throw new NotFoundException('Consultation not found');
     return consultation;
   }
 
@@ -337,8 +332,8 @@ export class ConsultationService {
     const skip = (page - 1) * limit;
     const [data, total] = await this.db.repo(Consultation).findAndCount({
       where: { patientId, tenantId },
-      relations: ["prescriptions", "prescriptions.items", "followUps"],
-      order: { createdAt: "DESC" },
+      relations: ['prescriptions', 'prescriptions.items', 'followUps'],
+      order: { createdAt: 'DESC' },
       skip,
       take: limit,
     });

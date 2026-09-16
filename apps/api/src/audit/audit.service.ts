@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import { AuditLog, Tenant, TenantDataSourceRegistry } from "@mediflow/database";
+import { Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { AuditLog, Tenant, TenantDataSourceRegistry } from '@mediflow/database';
 
 export interface AuditEntry {
   tenantId?: string;
@@ -38,7 +38,7 @@ export class AuditService {
         success: entry.success ?? true,
       });
     } catch (err: any) {
-      console.error("[Audit] write failed:", err?.message);
+      console.error('[Audit] write failed:', err?.message);
     }
   }
 
@@ -71,17 +71,17 @@ export class AuditService {
 
     const qb = ds
       .getRepository(AuditLog)
-      .createQueryBuilder("log")
-      .where("log.tenantId = :tenantId", { tenantId })
-      .orderBy("log.createdAt", "DESC")
+      .createQueryBuilder('log')
+      .where('log.tenantId = :tenantId', { tenantId })
+      .orderBy('log.createdAt', 'DESC')
       .skip((page - 1) * safeLimit)
       .take(safeLimit);
 
-    if (action) qb.andWhere("log.action = :action", { action });
-    if (entityType) qb.andWhere("log.entityType = :entityType", { entityType });
-    if (userId) qb.andWhere("log.userId = :userId", { userId });
-    if (from) qb.andWhere("log.createdAt >= :from", { from: new Date(from) });
-    if (to) qb.andWhere("log.createdAt <= :to", { to: new Date(to) });
+    if (action) qb.andWhere('log.action = :action', { action });
+    if (entityType) qb.andWhere('log.entityType = :entityType', { entityType });
+    if (userId) qb.andWhere('log.userId = :userId', { userId });
+    if (from) qb.andWhere('log.createdAt >= :from', { from: new Date(from) });
+    if (to) qb.andWhere('log.createdAt <= :to', { to: new Date(to) });
 
     const [data, total] = await qb.getManyAndCount();
     return {
@@ -99,7 +99,7 @@ export class AuditService {
     // initialized, so this is cheap for any tenant that had a recent request.
     const tenant = await this.platformDs.getRepository(Tenant).findOne({
       where: { id: tenantId },
-      select: ["id", "slug"],
+      select: ['id', 'slug'],
     });
     if (tenant?.slug) {
       // Cast: pnpm resolves typeorm to two separate package instances (one for

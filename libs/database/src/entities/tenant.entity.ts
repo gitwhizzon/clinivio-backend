@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-} from "typeorm";
-import { SubscriptionTier } from "./enums";
+} from 'typeorm';
+import { SubscriptionTier } from './enums';
 
-@Entity("tenants")
+@Entity('tenants')
 export class Tenant {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -35,7 +35,7 @@ export class Tenant {
   @Column({ nullable: true })
   state: string | null;
 
-  @Column({ name: "state_code", nullable: true })
+  @Column({ name: 'state_code', nullable: true })
   stateCode: string | null;
 
   @Column({ nullable: true })
@@ -45,8 +45,8 @@ export class Tenant {
   gstin: string | null;
 
   @Column({
-    name: "cgst_rate",
-    type: "decimal",
+    name: 'cgst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
@@ -54,8 +54,8 @@ export class Tenant {
   cgstRate: string | null;
 
   @Column({
-    name: "sgst_rate",
-    type: "decimal",
+    name: 'sgst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
@@ -63,35 +63,35 @@ export class Tenant {
   sgstRate: string | null;
 
   @Column({
-    name: "igst_rate",
-    type: "decimal",
+    name: 'igst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
   })
   igstRate: string | null;
 
-  @Column({ name: "drug_license_no", nullable: true })
+  @Column({ name: 'drug_license_no', nullable: true })
   drugLicenseNo: string | null;
 
-  @Column({ name: "abha_hip_id", nullable: true })
+  @Column({ name: 'abha_hip_id', nullable: true })
   abhaHipId: string | null;
 
-  @Column({ name: "whatsapp_phone_number_id", nullable: true })
+  @Column({ name: 'whatsapp_phone_number_id', nullable: true })
   whatsappPhoneNumberId: string | null;
 
-  @Column({ name: "waba_id", nullable: true })
+  @Column({ name: 'waba_id', nullable: true })
   wabaId: string | null;
 
   @Column({
-    name: "subscription_tier",
-    type: "enum",
+    name: 'subscription_tier',
+    type: 'enum',
     enum: SubscriptionTier,
     default: SubscriptionTier.BASIC,
   })
   subscriptionTier: SubscriptionTier;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   /**
@@ -101,7 +101,7 @@ export class Tenant {
    * screens still surface it as payment-pending. Opt-in per hospital; most
    * clients keep the hard pay-before-consult gate (default false).
    */
-  @Column({ name: "allow_consult_before_payment", default: false })
+  @Column({ name: 'allow_consult_before_payment', default: false })
   allowConsultationBeforePayment: boolean;
 
   @Column({ nullable: true })
@@ -113,27 +113,27 @@ export class Tenant {
   @Column({ nullable: true })
   website: string | null;
 
-  @Column({ name: "logo_url", nullable: true })
+  @Column({ name: 'logo_url', nullable: true })
   logoUrl: string | null;
 
-  @Column({ name: "registration_no", nullable: true })
+  @Column({ name: 'registration_no', nullable: true })
   registrationNo: string | null;
 
   @Column({ nullable: true })
   tagline: string | null;
 
-  @Column({ name: "print_header", nullable: true })
+  @Column({ name: 'print_header', nullable: true })
   printHeader: string | null;
 
-  @Column({ name: "pharmacy_name", nullable: true })
+  @Column({ name: 'pharmacy_name', nullable: true })
   pharmacyName: string | null;
 
-  @Column({ name: "portal_url", nullable: true })
+  @Column({ name: 'portal_url', nullable: true })
   portalUrl: string | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

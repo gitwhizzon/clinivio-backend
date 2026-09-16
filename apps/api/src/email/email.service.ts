@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import * as nodemailer from "nodemailer";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 
 export interface SendMailOptions {
   to: string;
@@ -16,18 +16,18 @@ export class EmailService {
 
   constructor(private readonly config: ConfigService) {
     this.transporter = nodemailer.createTransport({
-      host: config.get<string>("smtp.host") ?? "localhost",
-      port: config.get<number>("smtp.port") ?? 587,
-      secure: config.get<boolean>("smtp.secure") ?? false,
+      host: config.get<string>('smtp.host') ?? 'localhost',
+      port: config.get<number>('smtp.port') ?? 587,
+      secure: config.get<boolean>('smtp.secure') ?? false,
       auth: {
-        user: config.get<string>("smtp.user"),
-        pass: config.get<string>("smtp.pass"),
+        user: config.get<string>('smtp.user'),
+        pass: config.get<string>('smtp.pass'),
       },
     });
   }
 
   async sendMail(options: SendMailOptions): Promise<void> {
-    const from = this.config.get<string>("smtp.from") ?? "noreply@clinivio.ai";
+    const from = this.config.get<string>('smtp.from') ?? 'noreply@clinivio.ai';
     try {
       const info = await this.transporter.sendMail({ from, ...options });
       this.logger.log(`Email sent to ${options.to} [${info.messageId}]`);

@@ -1,6 +1,13 @@
 import {
-  Controller, Get, Post, Body, Query, Req,
-  HttpCode, HttpStatus, Logger,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Req,
+  HttpCode,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
@@ -58,9 +65,7 @@ export class WhatsappController {
       if (rawBody) {
         const expectedSig =
           'sha256=' +
-          createHmac('sha256', appSecret)
-            .update(rawBody)
-            .digest('hex');
+          createHmac('sha256', appSecret).update(rawBody).digest('hex');
 
         if (signature !== expectedSig) {
           this.logger.warn('WhatsApp signature mismatch — rejecting webhook');

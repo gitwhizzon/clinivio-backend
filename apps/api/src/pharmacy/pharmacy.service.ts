@@ -2,9 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+} from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import {
   PharmacyOrder,
   PharmacyInventory,
@@ -13,7 +13,6 @@ import {
   Appointment,
   Invoice,
   InvoicePayment,
-  Patient,
   Tenant,
   PharmacyOrderStatus,
   InvoiceType,
@@ -21,7 +20,7 @@ import {
   TenantEntityManager,
   ILike,
   LessThanOrEqual,
-} from "@mediflow/database";
+} from '@mediflow/database';
 
 export class CreateInventoryItemDto {
   name: string;
@@ -68,7 +67,7 @@ export class DispenseItemDto {
 
 export class DispenseOrderDto {
   items: DispenseItemDto[];
-  paymentMethod: "CASH" | "CARD" | "UPI" | "ONLINE";
+  paymentMethod: 'CASH' | 'CARD' | 'UPI' | 'ONLINE';
   dispenserNotes?: string;
 }
 
@@ -110,24 +109,24 @@ export class PharmacyService {
     const skip = (page - 1) * limit;
 
     const qb = this.db
-      .qb(PharmacyOrder, "po")
-      .leftJoinAndSelect("po.patient", "patient")
-      .leftJoinAndSelect("po.appointment", "appointment")
-      .leftJoinAndSelect("appointment.doctor", "doctor")
-      .leftJoinAndSelect("appointment.department", "department")
-      .leftJoinAndSelect("appointment.consultation", "consultation")
-      .leftJoinAndSelect("consultation.prescriptions", "prescriptions")
-      .leftJoinAndSelect("prescriptions.items", "items")
-      .where("po.tenantId = :tenantId", { tenantId });
+      .qb(PharmacyOrder, 'po')
+      .leftJoinAndSelect('po.patient', 'patient')
+      .leftJoinAndSelect('po.appointment', 'appointment')
+      .leftJoinAndSelect('appointment.doctor', 'doctor')
+      .leftJoinAndSelect('appointment.department', 'department')
+      .leftJoinAndSelect('appointment.consultation', 'consultation')
+      .leftJoinAndSelect('consultation.prescriptions', 'prescriptions')
+      .leftJoinAndSelect('prescriptions.items', 'items')
+      .where('po.tenantId = :tenantId', { tenantId });
 
     if (filters.status)
-      qb.andWhere("po.status = :status", { status: filters.status });
+      qb.andWhere('po.status = :status', { status: filters.status });
     if (filters.from)
-      qb.andWhere("po.createdAt >= :from", { from: new Date(filters.from) });
+      qb.andWhere('po.createdAt >= :from', { from: new Date(filters.from) });
     if (filters.to)
-      qb.andWhere("po.createdAt <= :to", { to: new Date(filters.to) });
+      qb.andWhere('po.createdAt <= :to', { to: new Date(filters.to) });
 
-    qb.orderBy("po.createdAt", "DESC").skip(skip).take(limit);
+    qb.orderBy('po.createdAt', 'DESC').skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
     return {
@@ -138,19 +137,19 @@ export class PharmacyService {
 
   async findOrderById(id: string, tenantId: string) {
     const order = await this.db
-      .qb(PharmacyOrder, "po")
-      .leftJoinAndSelect("po.patient", "patient")
-      .leftJoinAndSelect("po.appointment", "appointment")
-      .leftJoinAndSelect("appointment.doctor", "doctor")
-      .leftJoinAndSelect("appointment.department", "department")
-      .leftJoinAndSelect("appointment.consultation", "consultation")
-      .leftJoinAndSelect("consultation.prescriptions", "prescriptions")
-      .leftJoinAndSelect("prescriptions.items", "items")
-      .where("po.id = :id", { id })
-      .andWhere("po.tenantId = :tenantId", { tenantId })
+      .qb(PharmacyOrder, 'po')
+      .leftJoinAndSelect('po.patient', 'patient')
+      .leftJoinAndSelect('po.appointment', 'appointment')
+      .leftJoinAndSelect('appointment.doctor', 'doctor')
+      .leftJoinAndSelect('appointment.department', 'department')
+      .leftJoinAndSelect('appointment.consultation', 'consultation')
+      .leftJoinAndSelect('consultation.prescriptions', 'prescriptions')
+      .leftJoinAndSelect('prescriptions.items', 'items')
+      .where('po.id = :id', { id })
+      .andWhere('po.tenantId = :tenantId', { tenantId })
       .getOne();
 
-    if (!order) throw new NotFoundException("Pharmacy order not found");
+    if (!order) throw new NotFoundException('Pharmacy order not found');
     return order;
   }
 
@@ -158,7 +157,7 @@ export class PharmacyService {
     const order = await this.db
       .repo(PharmacyOrder)
       .findOne({ where: { id, tenantId } });
-    if (!order) throw new NotFoundException("Pharmacy order not found");
+    if (!order) throw new NotFoundException('Pharmacy order not found');
 
     const now = new Date();
     const updates: Partial<PharmacyOrder> = {};
@@ -181,16 +180,16 @@ export class PharmacyService {
       if (!existing) {
         const tenant = await this.platformDs.getRepository(Tenant).findOne({
           where: { id: tenantId },
-          select: ["id", "cgstRate", "sgstRate"],
+          select: ['id', 'cgstRate', 'sgstRate'],
         });
         const defaultCgst =
           tenant?.cgstRate !== null && tenant?.cgstRate !== undefined
             ? parseFloat(tenant.cgstRate)
-            : parseFloat(process.env.GST_CGST_RATE ?? "0.09") * 100;
+            : parseFloat(process.env.GST_CGST_RATE ?? '0.09') * 100;
         const defaultSgst =
           tenant?.sgstRate !== null && tenant?.sgstRate !== undefined
             ? parseFloat(tenant.sgstRate)
-            : parseFloat(process.env.GST_SGST_RATE ?? "0.09") * 100;
+            : parseFloat(process.env.GST_SGST_RATE ?? '0.09') * 100;
 
         const r2 = (n: number) => Math.round(n * 100) / 100;
         let subtotal = 0,
@@ -202,9 +201,9 @@ export class PharmacyService {
           const appt = await this.db.repo(Appointment).findOne({
             where: { id: order.appointmentId, tenantId },
             relations: [
-              "consultation",
-              "consultation.prescriptions",
-              "consultation.prescriptions.items",
+              'consultation',
+              'consultation.prescriptions',
+              'consultation.prescriptions.items',
             ],
           });
           const prescItems =
@@ -239,14 +238,14 @@ export class PharmacyService {
         }
 
         if (!lineItems.length) {
-          lineItems.push({ description: "Pharmacy Dispensing", amount: 0 });
+          lineItems.push({ description: 'Pharmacy Dispensing', amount: 0 });
         }
 
         const totalAmount = r2(subtotal + totalCgst + totalSgst);
         const invoiceCount = await this.db
           .repo(Invoice)
           .count({ where: { tenantId } });
-        const invoiceNumber = `INV-PHR-${String(invoiceCount + 1).padStart(6, "0")}`;
+        const invoiceNumber = `INV-PHR-${String(invoiceCount + 1).padStart(6, '0')}`;
         const savedInvoice = await this.db.repo(Invoice).save(
           this.db.repo(Invoice).create({
             tenantId,
@@ -256,14 +255,14 @@ export class PharmacyService {
             invoiceType: InvoiceType.PHARMACY,
             lineItems,
             subtotal: String(r2(subtotal)),
-            discountAmount: "0",
+            discountAmount: '0',
             taxableAmount: String(r2(subtotal)),
             cgstAmount: String(r2(totalCgst)),
             sgstAmount: String(r2(totalSgst)),
-            igstAmount: "0",
+            igstAmount: '0',
             totalAmount: String(totalAmount),
             amountPaid: String(totalAmount),
-            balanceDue: "0",
+            balanceDue: '0',
             paymentStatus: PaymentStatus.PAID,
             paidAt: now,
           }),
@@ -277,7 +276,7 @@ export class PharmacyService {
             tenantId,
             invoiceId: savedInvoice.id,
             amount: String(totalAmount),
-            paymentMethod: "CASH",
+            paymentMethod: 'CASH',
             paidAt: now,
           }),
         );
@@ -300,14 +299,14 @@ export class PharmacyService {
           { tenantId, isActive: true, genericName: ILike(`%${q}%`) },
           { tenantId, isActive: true, category: ILike(`%${q}%`) },
         ],
-        order: { name: "ASC" },
+        order: { name: 'ASC' },
         skip,
         take: limit,
       });
     } else {
       [items, total] = await this.db.repo(PharmacyInventory).findAndCount({
         where: { tenantId, isActive: true },
-        order: { name: "ASC" },
+        order: { name: 'ASC' },
         skip,
         take: limit,
       });
@@ -323,7 +322,7 @@ export class PharmacyService {
     const item = await this.db
       .repo(PharmacyInventory)
       .findOne({ where: { id, tenantId } });
-    if (!item) throw new NotFoundException("Inventory item not found");
+    if (!item) throw new NotFoundException('Inventory item not found');
     return item;
   }
 
@@ -334,14 +333,14 @@ export class PharmacyService {
         name: dto.name,
         genericName: dto.genericName ?? null,
         category: dto.category ?? null,
-        unit: dto.unit ?? "Tablet",
+        unit: dto.unit ?? 'Tablet',
         stockQty: dto.stockQty ?? 0,
         reorderLevel: dto.reorderLevel ?? 10,
         batchNo: dto.batchNo ?? null,
         expiryDate: dto.expiryDate ?? null,
-        mrp: dto.mrp !== undefined ? String(dto.mrp) : "0",
+        mrp: dto.mrp !== undefined ? String(dto.mrp) : '0',
         sellingPrice:
-          dto.sellingPrice !== undefined ? String(dto.sellingPrice) : "0",
+          dto.sellingPrice !== undefined ? String(dto.sellingPrice) : '0',
         gstRate: dto.gstRate !== undefined ? String(dto.gstRate) : null,
         manufacturer: dto.manufacturer ?? null,
         hsn: dto.hsn ?? null,
@@ -381,35 +380,35 @@ export class PharmacyService {
   async adjustStock(id: string, tenantId: string, delta: number) {
     const item = await this.findInventoryItem(id, tenantId);
     const newQty = item.stockQty + delta;
-    if (newQty < 0) throw new BadRequestException("Insufficient stock");
+    if (newQty < 0) throw new BadRequestException('Insufficient stock');
     await this.db.repo(PharmacyInventory).update(id, { stockQty: newQty });
     return this.db.repo(PharmacyInventory).findOne({ where: { id } });
   }
 
   async getLowStockItems(tenantId: string) {
     return this.db
-      .qb(PharmacyInventory, "inv")
-      .where("inv.tenantId = :tenantId", { tenantId })
-      .andWhere("inv.isActive = true")
-      .andWhere("inv.stockQty <= inv.reorderLevel")
-      .orderBy("inv.stockQty", "ASC")
+      .qb(PharmacyInventory, 'inv')
+      .where('inv.tenantId = :tenantId', { tenantId })
+      .andWhere('inv.isActive = true')
+      .andWhere('inv.stockQty <= inv.reorderLevel')
+      .orderBy('inv.stockQty', 'ASC')
       .getMany();
   }
 
   async getExpiringItems(tenantId: string, withinDays = 30) {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const future = new Date();
     future.setDate(future.getDate() + withinDays);
-    const futureDate = future.toISOString().split("T")[0];
+    const futureDate = future.toISOString().split('T')[0];
 
     return this.db
-      .qb(PharmacyInventory, "inv")
-      .where("inv.tenantId = :tenantId", { tenantId })
-      .andWhere("inv.isActive = true")
-      .andWhere("inv.expiryDate IS NOT NULL")
-      .andWhere("inv.expiryDate >= :today", { today })
-      .andWhere("inv.expiryDate <= :futureDate", { futureDate })
-      .orderBy("inv.expiryDate", "ASC")
+      .qb(PharmacyInventory, 'inv')
+      .where('inv.tenantId = :tenantId', { tenantId })
+      .andWhere('inv.isActive = true')
+      .andWhere('inv.expiryDate IS NOT NULL')
+      .andWhere('inv.expiryDate >= :today', { today })
+      .andWhere('inv.expiryDate <= :futureDate', { futureDate })
+      .orderBy('inv.expiryDate', 'ASC')
       .getMany();
   }
 
@@ -417,14 +416,14 @@ export class PharmacyService {
     const order = await this.db
       .repo(PharmacyOrder)
       .findOne({ where: { id, tenantId } });
-    if (!order) throw new NotFoundException("Pharmacy order not found");
+    if (!order) throw new NotFoundException('Pharmacy order not found');
     if (order.status === PharmacyOrderStatus.DISPENSED)
-      throw new BadRequestException("Order is already dispensed");
+      throw new BadRequestException('Order is already dispensed');
     if (order.status === PharmacyOrderStatus.RETURNED)
-      throw new BadRequestException("Cannot dispense a returned order");
+      throw new BadRequestException('Cannot dispense a returned order');
     if (!dto.items?.length)
       throw new BadRequestException(
-        "At least one item is required to dispense",
+        'At least one item is required to dispense',
       );
 
     // Validate each inventory item and check stock
@@ -447,10 +446,10 @@ export class PharmacyService {
     // Get tenant default GST rates for fallback
     const tenant = await this.platformDs.getRepository(Tenant).findOne({
       where: { id: tenantId },
-      select: ["id", "cgstRate", "sgstRate"],
+      select: ['id', 'cgstRate', 'sgstRate'],
     });
-    const envCgst = parseFloat(process.env.GST_CGST_RATE ?? "0.09") * 100;
-    const envSgst = parseFloat(process.env.GST_SGST_RATE ?? "0.09") * 100;
+    const envCgst = parseFloat(process.env.GST_CGST_RATE ?? '0.09') * 100;
+    const envSgst = parseFloat(process.env.GST_SGST_RATE ?? '0.09') * 100;
     const defaultCgstPct =
       tenant?.cgstRate != null ? parseFloat(tenant.cgstRate) : envCgst;
     const defaultSgstPct =
@@ -508,21 +507,21 @@ export class PharmacyService {
       .count({ where: { tenantId } });
     const invoiceNumber =
       existing?.invoiceNumber ??
-      `INV-PHR-${String(invoiceCount + 1).padStart(6, "0")}`;
+      `INV-PHR-${String(invoiceCount + 1).padStart(6, '0')}`;
 
     let pharmacyInvoiceId: string;
     if (existing) {
       await this.db.repo(Invoice).update(existing.id, {
         lineItems,
         subtotal: String(r2(subtotal)),
-        discountAmount: "0",
+        discountAmount: '0',
         taxableAmount: String(r2(taxable)),
         cgstAmount: String(r2(totalCgst)),
         sgstAmount: String(r2(totalSgst)),
-        igstAmount: "0",
+        igstAmount: '0',
         totalAmount: String(totalAmount),
         amountPaid: String(totalAmount),
-        balanceDue: "0",
+        balanceDue: '0',
         paymentStatus: PaymentStatus.PAID,
         paymentMethod: dto.paymentMethod,
         paidAt: now,
@@ -538,14 +537,14 @@ export class PharmacyService {
           invoiceType: InvoiceType.PHARMACY,
           lineItems,
           subtotal: String(r2(subtotal)),
-          discountAmount: "0",
+          discountAmount: '0',
           taxableAmount: String(r2(taxable)),
           cgstAmount: String(r2(totalCgst)),
           sgstAmount: String(r2(totalSgst)),
-          igstAmount: "0",
+          igstAmount: '0',
           totalAmount: String(totalAmount),
           amountPaid: String(totalAmount),
-          balanceDue: "0",
+          balanceDue: '0',
           paymentStatus: PaymentStatus.PAID,
           paymentMethod: dto.paymentMethod,
           paidAt: now,
@@ -635,7 +634,7 @@ export class PharmacyService {
       invoiceNo: dto.invoiceNo ?? null,
       purchaseDate: dto.purchaseDate,
       totalAmount: String(Math.round(totalAmount * 100) / 100),
-      discountAmount: "0",
+      discountAmount: '0',
       notes: dto.notes ?? null,
       createdBy: userId ?? null,
       items: itemEntities as PharmacyPurchaseItem[],
@@ -648,7 +647,7 @@ export class PharmacyService {
     const skip = (page - 1) * limit;
     const [data, total] = await this.db.repo(PharmacyPurchase).findAndCount({
       where: { tenantId },
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
       skip,
       take: limit,
     });
@@ -662,7 +661,7 @@ export class PharmacyService {
     const p = await this.db
       .repo(PharmacyPurchase)
       .findOne({ where: { id, tenantId } });
-    if (!p) throw new NotFoundException("Purchase not found");
+    if (!p) throw new NotFoundException('Purchase not found');
     return p;
   }
 
@@ -673,8 +672,8 @@ export class PharmacyService {
     // Revenue from pharmacy invoices
     const invoices = await this.db.repo(Invoice).find({
       where: { tenantId, invoiceType: InvoiceType.PHARMACY } as any,
-      select: ["totalAmount", "paidAt", "createdAt"] as any,
-      order: { createdAt: "DESC" },
+      select: ['totalAmount', 'paidAt', 'createdAt'] as any,
+      order: { createdAt: 'DESC' },
       take: 2000,
     });
 
@@ -686,7 +685,7 @@ export class PharmacyService {
 
     const dailyMap: Record<string, { orders: number; revenue: number }> = {};
     for (const inv of inPeriod) {
-      const date = new Date(inv.createdAt).toISOString().split("T")[0];
+      const date = new Date(inv.createdAt).toISOString().split('T')[0];
       if (!dailyMap[date]) dailyMap[date] = { orders: 0, revenue: 0 };
       dailyMap[date].orders++;
       dailyMap[date].revenue += parseFloat((inv as any).totalAmount ?? 0);
@@ -708,7 +707,7 @@ export class PharmacyService {
         isActive: true,
         expiryDate: LessThanOrEqual(sixMonths.toISOString().slice(0, 10)),
       },
-      order: { expiryDate: "ASC" },
+      order: { expiryDate: 'ASC' },
       take: 100,
     });
 
@@ -754,7 +753,7 @@ export class PharmacyService {
             threeMonthsFromNow.toISOString().slice(0, 10),
           ),
         },
-        order: { expiryDate: "ASC" },
+        order: { expiryDate: 'ASC' },
         take: 20,
       }),
     ]);

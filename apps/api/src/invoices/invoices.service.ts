@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from "@nestjs/common";
+} from '@nestjs/common';
 import {
   Invoice,
   InvoicePayment,
@@ -11,7 +11,7 @@ import {
   PaymentStatus,
   DiscountType,
   TenantEntityManager,
-} from "@mediflow/database";
+} from '@mediflow/database';
 
 interface LineItem {
   name: string;
@@ -141,14 +141,14 @@ export class InvoicesService {
       .repo(Invoice)
       .count({ where: { tenantId, invoiceType: type } });
     const prefix = type.slice(0, 3).toUpperCase();
-    return `INV-${prefix}-${year}-${String(count + 1).padStart(6, "0")}`;
+    return `INV-${prefix}-${year}-${String(count + 1).padStart(6, '0')}`;
   }
 
   async create(tenantId: string, dto: CreateInvoiceDto) {
     const patient = await this.db
       .repo(Patient)
       .findOne({ where: { id: dto.patientId, tenantId } });
-    if (!patient) throw new NotFoundException("Patient not found");
+    if (!patient) throw new NotFoundException('Patient not found');
 
     const discountAmount = dto.discountType
       ? resolveDiscountAmount(
@@ -174,7 +174,7 @@ export class InvoicesService {
         appointmentId: dto.appointmentId ?? null,
         ipdAdmissionId: dto.ipdAdmissionId ?? null,
         invoiceNumber,
-        invoiceDate: new Date().toISOString().split("T")[0],
+        invoiceDate: new Date().toISOString().split('T')[0],
         invoiceType: dto.invoiceType,
         lineItems: dto.lineItems,
         subtotal: String(gst.subtotal),
@@ -187,7 +187,7 @@ export class InvoicesService {
         sgstAmount: String(gst.sgstAmount),
         igstAmount: String(gst.igstAmount),
         totalAmount: String(gst.totalAmount),
-        amountPaid: "0",
+        amountPaid: '0',
         balanceDue: String(gst.totalAmount),
         paymentStatus: PaymentStatus.PENDING,
         notes: dto.notes ?? null,
@@ -196,7 +196,7 @@ export class InvoicesService {
 
     return this.db
       .repo(Invoice)
-      .findOne({ where: { id: invoice.id }, relations: ["patient"] });
+      .findOne({ where: { id: invoice.id }, relations: ['patient'] });
   }
 
   async findAll(
@@ -214,28 +214,28 @@ export class InvoicesService {
     const skip = (page - 1) * limit;
 
     const qb = this.db
-      .qb(Invoice, "inv")
-      .leftJoinAndSelect("inv.patient", "patient")
-      .where("inv.tenantId = :tenantId", { tenantId });
+      .qb(Invoice, 'inv')
+      .leftJoinAndSelect('inv.patient', 'patient')
+      .where('inv.tenantId = :tenantId', { tenantId });
 
     if (filters.patientId)
-      qb.andWhere("inv.patientId = :patientId", {
+      qb.andWhere('inv.patientId = :patientId', {
         patientId: filters.patientId,
       });
     if (filters.invoiceType)
-      qb.andWhere("inv.invoiceType = :invoiceType", {
+      qb.andWhere('inv.invoiceType = :invoiceType', {
         invoiceType: filters.invoiceType,
       });
     if (filters.paymentStatus)
-      qb.andWhere("inv.paymentStatus = :paymentStatus", {
+      qb.andWhere('inv.paymentStatus = :paymentStatus', {
         paymentStatus: filters.paymentStatus,
       });
     if (filters.from)
-      qb.andWhere("inv.createdAt >= :from", { from: new Date(filters.from) });
+      qb.andWhere('inv.createdAt >= :from', { from: new Date(filters.from) });
     if (filters.to)
-      qb.andWhere("inv.createdAt <= :to", { to: new Date(filters.to) });
+      qb.andWhere('inv.createdAt <= :to', { to: new Date(filters.to) });
 
-    qb.orderBy("inv.createdAt", "DESC").skip(skip).take(limit);
+    qb.orderBy('inv.createdAt', 'DESC').skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
     return {
@@ -247,8 +247,8 @@ export class InvoicesService {
   async findById(id: string, tenantId: string) {
     const invoice = await this.db
       .repo(Invoice)
-      .findOne({ where: { id, tenantId }, relations: ["patient"] });
-    if (!invoice) throw new NotFoundException("Invoice not found");
+      .findOne({ where: { id, tenantId }, relations: ['patient'] });
+    if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
   }
 
@@ -260,9 +260,9 @@ export class InvoicesService {
   ) {
     const invoice = await this.findById(id, tenantId);
     if (invoice.paymentStatus === PaymentStatus.PAID)
-      throw new BadRequestException("Invoice already paid");
+      throw new BadRequestException('Invoice already paid');
     if (invoice.paymentStatus === PaymentStatus.REFUNDED)
-      throw new BadRequestException("Cannot pay a refunded invoice");
+      throw new BadRequestException('Cannot pay a refunded invoice');
 
     // balanceDue predates this column on older rows (default '0') — fall back
     // to totalAmount minus whatever's already recorded as paid.
@@ -272,10 +272,10 @@ export class InvoicesService {
       parseFloat(invoice.balanceDue) > 0
         ? parseFloat(invoice.balanceDue)
         : parseFloat(invoice.totalAmount) -
-          parseFloat(invoice.amountPaid ?? "0");
+          parseFloat(invoice.amountPaid ?? '0');
     const requested = dto.amount !== undefined ? dto.amount : balanceDue;
     if (requested <= 0)
-      throw new BadRequestException("Payment amount must be greater than zero");
+      throw new BadRequestException('Payment amount must be greater than zero');
 
     // Never collect more than what's owed — extra gets silently ignored
     // rather than pushing balanceDue negative.
@@ -292,7 +292,7 @@ export class InvoicesService {
 
     const now = new Date();
     const newAmountPaid =
-      Math.round((parseFloat(invoice.amountPaid ?? "0") + collected) * 100) /
+      Math.round((parseFloat(invoice.amountPaid ?? '0') + collected) * 100) /
       100;
     const newBalanceDue = Math.max(
       0,
@@ -325,14 +325,14 @@ export class InvoicesService {
       );
       return em
         .getRepository(Invoice)
-        .findOne({ where: { id }, relations: ["patient"] });
+        .findOne({ where: { id }, relations: ['patient'] });
     });
   }
 
   async refund(id: string, tenantId: string) {
     const invoice = await this.findById(id, tenantId);
     if (invoice.paymentStatus !== PaymentStatus.PAID)
-      throw new BadRequestException("Only paid invoices can be refunded");
+      throw new BadRequestException('Only paid invoices can be refunded');
     await this.db
       .repo(Invoice)
       .update(id, { paymentStatus: PaymentStatus.REFUNDED });
@@ -342,24 +342,20 @@ export class InvoicesService {
   async getPatientInvoices(patientId: string, tenantId: string) {
     return this.db
       .repo(Invoice)
-      .find({ where: { patientId, tenantId }, order: { createdAt: "DESC" } });
+      .find({ where: { patientId, tenantId }, order: { createdAt: 'DESC' } });
   }
 
   async getInvoicesByAppointment(appointmentId: string, tenantId: string) {
-    return this.db
-      .repo(Invoice)
-      .find({
-        where: { appointmentId, tenantId },
-        order: { createdAt: "DESC" },
-      });
+    return this.db.repo(Invoice).find({
+      where: { appointmentId, tenantId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async getInvoicesByAdmission(ipdAdmissionId: string, tenantId: string) {
-    return this.db
-      .repo(Invoice)
-      .find({
-        where: { ipdAdmissionId, tenantId },
-        order: { createdAt: "DESC" },
-      });
+    return this.db.repo(Invoice).find({
+      where: { ipdAdmissionId, tenantId },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

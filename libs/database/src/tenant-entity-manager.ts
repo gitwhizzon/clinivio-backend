@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable } from '@nestjs/common';
 import {
   DataSource,
   EntityManager,
@@ -9,9 +9,9 @@ import {
   ObjectLiteral,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { TenantDataSourceRegistry } from "./tenant-datasource.registry";
-import { ALL_ENTITIES, Tenant } from "./entities";
+} from 'typeorm';
+import { TenantDataSourceRegistry } from './tenant-datasource.registry';
+import { ALL_ENTITIES, Tenant } from './entities';
 
 /**
  * Every entity except `Tenant` itself carries a `tenantId` column and is
@@ -70,11 +70,11 @@ function scopeRepository<T extends ObjectLiteral>(
 
   return new Proxy(repo, {
     get(target, prop, _receiver) {
-      if (typeof prop === "string" && prop in overrides) {
+      if (typeof prop === 'string' && prop in overrides) {
         return overrides[prop];
       }
       const value = Reflect.get(target, prop, target);
-      return typeof value === "function" ? value.bind(target) : value;
+      return typeof value === 'function' ? value.bind(target) : value;
     },
   }) as Repository<T>;
 }

@@ -14,10 +14,10 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // If no roles metadata is set, allow access
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -33,9 +33,7 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    const hasRole = requiredRoles.some(
-      (role) => role === (user.role as ROLES),
-    );
+    const hasRole = requiredRoles.some((role) => role === (user.role as ROLES));
 
     if (!hasRole) {
       throw new ForbiddenException(

@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
-import { Room, Bed, IPDAdmission, BedStatus, IPDAdmissionStatus, TenantEntityManager } from '@mediflow/database';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Room, Bed, BedStatus, TenantEntityManager } from '@mediflow/database';
 
 export class CreateRoomDto {
   name: string;
@@ -76,14 +71,20 @@ export class RoomsService {
     return rooms.map((room) => {
       const beds = (room.beds as Bed[]) ?? [];
       const totalBeds = beds.length;
-      const availableBeds = beds.filter((b) => b.status === BedStatus.AVAILABLE).length;
-      const occupiedBeds = beds.filter((b) => b.status === BedStatus.OCCUPIED).length;
+      const availableBeds = beds.filter(
+        (b) => b.status === BedStatus.AVAILABLE,
+      ).length;
+      const occupiedBeds = beds.filter(
+        (b) => b.status === BedStatus.OCCUPIED,
+      ).length;
       return { ...room, totalBeds, availableBeds, occupiedBeds };
     });
   }
 
   async findById(id: string, tenantId: string) {
-    const room = await this.db.repo(Room).findOne({ where: { id, tenantId }, relations: ['beds'] });
+    const room = await this.db
+      .repo(Room)
+      .findOne({ where: { id, tenantId }, relations: ['beds'] });
     if (!room) throw new NotFoundException('Room not found');
     return room;
   }
@@ -95,7 +96,8 @@ export class RoomsService {
     const updates: Partial<Room> = {};
     if (dto.name !== undefined) updates.name = dto.name;
     if (dto.floor !== undefined) updates.floor = dto.floor;
-    if (dto.pricePerDay !== undefined) updates.pricePerDay = String(dto.pricePerDay);
+    if (dto.pricePerDay !== undefined)
+      updates.pricePerDay = String(dto.pricePerDay);
     if (dto.amenities !== undefined) updates.amenities = dto.amenities;
     if (dto.notes !== undefined) updates.notes = dto.notes;
     if (dto.isActive !== undefined) updates.isActive = dto.isActive;
@@ -113,16 +115,26 @@ export class RoomsService {
     if (roomId) qb.andWhere('bed.roomId = :roomId', { roomId });
     if (status) qb.andWhere('bed.status = :status', { status });
 
-    return qb.orderBy('room.name', 'ASC').addOrderBy('bed.bedNumber', 'ASC').getMany();
+    return qb
+      .orderBy('room.name', 'ASC')
+      .addOrderBy('bed.bedNumber', 'ASC')
+      .getMany();
   }
 
   async findBedById(id: string, tenantId: string) {
-    const bed = await this.db.repo(Bed).findOne({ where: { id, tenantId }, relations: ['room'] });
+    const bed = await this.db
+      .repo(Bed)
+      .findOne({ where: { id, tenantId }, relations: ['room'] });
     if (!bed) throw new NotFoundException('Bed not found');
     return bed;
   }
 
-  async updateBedStatus(id: string, tenantId: string, status: BedStatus, notes?: string) {
+  async updateBedStatus(
+    id: string,
+    tenantId: string,
+    status: BedStatus,
+    notes?: string,
+  ) {
     await this.findBedById(id, tenantId);
     await this.db.repo(Bed).update(id, { status, notes: notes ?? undefined });
     return this.db.repo(Bed).findOne({ where: { id }, relations: ['room'] });
@@ -147,7 +159,9 @@ export class RoomsService {
     );
 
     await this.db.repo(Bed).save(newBeds);
-    await this.db.repo(Room).update(roomId, { totalBeds: room.totalBeds + count });
+    await this.db
+      .repo(Room)
+      .update(roomId, { totalBeds: room.totalBeds + count });
 
     return this.findById(roomId, tenantId);
   }
@@ -168,6 +182,12 @@ export class RoomsService {
     const available = result[BedStatus.AVAILABLE] ?? 0;
     const occupied = result[BedStatus.OCCUPIED] ?? 0;
 
-    return { total, available, occupied, other: total - available - occupied, byStatus: result };
+    return {
+      total,
+      available,
+      occupied,
+      other: total - available - occupied,
+      byStatus: result,
+    };
   }
 }

@@ -8,104 +8,104 @@ import {
   OneToMany,
   OneToOne,
   JoinColumn,
-} from "typeorm";
-import { PharmacyOrderStatus } from "./enums";
-import { Tenant } from "./tenant.entity";
-import { Appointment } from "./appointment.entity";
-import { Patient } from "./patient.entity";
+} from 'typeorm';
+import { PharmacyOrderStatus } from './enums';
+import { Tenant } from './tenant.entity';
+import { Appointment } from './appointment.entity';
+import { Patient } from './patient.entity';
 
-@Entity("pharmacy_orders")
+@Entity('pharmacy_orders')
 export class PharmacyOrder {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: "appointment_id", unique: true })
+  @Column({ name: 'appointment_id', unique: true })
   appointmentId: string;
 
-  @Column({ name: "patient_id" })
+  @Column({ name: 'patient_id' })
   patientId: string;
 
-  @Column({ name: "prescription_id", nullable: true, unique: true })
+  @Column({ name: 'prescription_id', nullable: true, unique: true })
   prescriptionId: string | null;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: PharmacyOrderStatus,
     default: PharmacyOrderStatus.PENDING,
   })
   status: PharmacyOrderStatus;
 
-  @Column({ name: "dispenser_notes", nullable: true })
+  @Column({ name: 'dispenser_notes', nullable: true })
   dispenserNotes: string | null;
 
-  @Column({ name: "dispensed_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'dispensed_at', type: 'timestamptz', nullable: true })
   dispensedAt: Date | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
   @OneToOne(() => Appointment, (a: any) => a.pharmacyOrder, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: "appointment_id" })
+  @JoinColumn({ name: 'appointment_id' })
   appointment: Appointment;
 
-  @ManyToOne(() => Patient, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "patient_id" })
+  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'patient_id' })
   patient: Patient;
 }
 
-@Entity("pharmacy_inventory")
+@Entity('pharmacy_inventory')
 export class PharmacyInventory {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
   @Column()
   name: string;
 
-  @Column({ name: "generic_name", nullable: true })
+  @Column({ name: 'generic_name', nullable: true })
   genericName: string | null;
 
   @Column({ nullable: true })
   category: string | null;
 
-  @Column({ default: "Tablet" })
+  @Column({ default: 'Tablet' })
   unit: string;
 
-  @Column({ name: "stock_qty", type: "int", default: 0 })
+  @Column({ name: 'stock_qty', type: 'int', default: 0 })
   stockQty: number;
 
-  @Column({ name: "reorder_level", type: "int", default: 10 })
+  @Column({ name: 'reorder_level', type: 'int', default: 10 })
   reorderLevel: number;
 
-  @Column({ name: "batch_no", nullable: true })
+  @Column({ name: 'batch_no', nullable: true })
   batchNo: string | null;
 
-  @Column({ name: "expiry_date", type: "date", nullable: true })
+  @Column({ name: 'expiry_date', type: 'date', nullable: true })
   expiryDate: string | null;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   mrp: string;
 
   @Column({
-    name: "selling_price",
-    type: "decimal",
+    name: 'selling_price',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
@@ -113,8 +113,8 @@ export class PharmacyInventory {
   sellingPrice: string;
 
   @Column({
-    name: "gst_rate",
-    type: "decimal",
+    name: 'gst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
@@ -127,43 +127,43 @@ export class PharmacyInventory {
   @Column({ nullable: true })
   hsn: string | null;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 }
 
-@Entity("pharmacy_purchases")
+@Entity('pharmacy_purchases')
 export class PharmacyPurchase {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: "vendor_name" })
+  @Column({ name: 'vendor_name' })
   vendorName: string;
 
-  @Column({ name: "invoice_no", nullable: true })
+  @Column({ name: 'invoice_no', nullable: true })
   invoiceNo: string | null;
 
-  @Column({ name: "purchase_date", type: "date" })
+  @Column({ name: 'purchase_date', type: 'date' })
   purchaseDate: string;
 
   @Column({
-    name: "total_amount",
-    type: "decimal",
+    name: 'total_amount',
+    type: 'decimal',
     precision: 12,
     scale: 2,
     default: 0,
@@ -171,8 +171,8 @@ export class PharmacyPurchase {
   totalAmount: string;
 
   @Column({
-    name: "discount_amount",
-    type: "decimal",
+    name: 'discount_amount',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
@@ -182,13 +182,13 @@ export class PharmacyPurchase {
   @Column({ nullable: true })
   notes: string | null;
 
-  @Column({ name: "created_by", nullable: true })
+  @Column({ name: 'created_by', nullable: true })
   createdBy: string | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @OneToMany(() => PharmacyPurchaseItem, (item) => item.purchase, {
@@ -198,54 +198,54 @@ export class PharmacyPurchase {
   items: PharmacyPurchaseItem[];
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 }
 
-@Entity("pharmacy_purchase_items")
+@Entity('pharmacy_purchase_items')
 export class PharmacyPurchaseItem {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "purchase_id" })
+  @Column({ name: 'purchase_id' })
   purchaseId: string;
 
-  @Column({ name: "inventory_id", nullable: true })
+  @Column({ name: 'inventory_id', nullable: true })
   inventoryId: string | null;
 
-  @Column({ name: "medicine_name" })
+  @Column({ name: 'medicine_name' })
   medicineName: string;
 
-  @Column({ name: "batch_no", nullable: true })
+  @Column({ name: 'batch_no', nullable: true })
   batchNo: string | null;
 
-  @Column({ name: "expiry_date", type: "date", nullable: true })
+  @Column({ name: 'expiry_date', type: 'date', nullable: true })
   expiryDate: string | null;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ type: 'int', default: 0 })
   quantity: number;
 
-  @Column({ name: "free_qty", type: "int", default: 0 })
+  @Column({ name: 'free_qty', type: 'int', default: 0 })
   freeQty: number;
 
   @Column({
-    name: "purchase_price",
-    type: "decimal",
+    name: 'purchase_price',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
   })
   purchasePrice: string;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   mrp: string | null;
 
   @Column({
-    name: "selling_price",
-    type: "decimal",
+    name: 'selling_price',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     nullable: true,
@@ -253,8 +253,8 @@ export class PharmacyPurchaseItem {
   sellingPrice: string | null;
 
   @Column({
-    name: "discount_percent",
-    type: "decimal",
+    name: 'discount_percent',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     default: 0,
@@ -262,8 +262,8 @@ export class PharmacyPurchaseItem {
   discountPercent: string;
 
   @Column({
-    name: "gst_rate",
-    type: "decimal",
+    name: 'gst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
@@ -271,15 +271,15 @@ export class PharmacyPurchaseItem {
   gstRate: string | null;
 
   @Column({
-    name: "line_total",
-    type: "decimal",
+    name: 'line_total',
+    type: 'decimal',
     precision: 12,
     scale: 2,
     default: 0,
   })
   lineTotal: string;
 
-  @ManyToOne(() => PharmacyPurchase, (p) => p.items, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "purchase_id" })
+  @ManyToOne(() => PharmacyPurchase, (p) => p.items, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'purchase_id' })
   purchase: PharmacyPurchase;
 }

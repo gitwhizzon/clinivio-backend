@@ -1,7 +1,13 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToOne, OneToMany, JoinColumn,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToOne,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Appointment } from './appointment.entity';
@@ -37,10 +43,22 @@ export class Consultation {
   @Column({ type: 'decimal', precision: 4, scale: 1, nullable: true })
   temperature: string | null;
 
-  @Column({ name: 'weight_kg', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'weight_kg',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   weightKg: string | null;
 
-  @Column({ name: 'height_cm', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'height_cm',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   heightCm: string | null;
 
   @Column({ type: 'decimal', precision: 4, scale: 1, nullable: true })
@@ -49,7 +67,13 @@ export class Consultation {
   @Column({ type: 'int', nullable: true })
   spo2: number | null;
 
-  @Column({ name: 'rbs_mg_dl', type: 'decimal', precision: 5, scale: 1, nullable: true })
+  @Column({
+    name: 'rbs_mg_dl',
+    type: 'decimal',
+    precision: 5,
+    scale: 1,
+    nullable: true,
+  })
   rbsMgDl: string | null;
 
   @Column({ name: 'respiratory_rate', type: 'int', nullable: true })
@@ -79,11 +103,16 @@ export class Consultation {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @OneToOne(() => Appointment, (a: any) => a.consultation, { onDelete: 'CASCADE' })
+  @OneToOne(() => Appointment, (a: any) => a.consultation, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'appointment_id' })
   appointment: Appointment;
 

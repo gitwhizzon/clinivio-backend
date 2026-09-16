@@ -8,9 +8,9 @@ import {
   Min,
   Max,
   MinLength,
-} from "class-validator";
-import { ApiPropertyOptional } from "@nestjs/swagger";
-import { SubscriptionTier } from "@mediflow/database";
+} from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { SubscriptionTier } from '@mediflow/database';
 
 /**
  * PATCH /tenants/:id
@@ -20,7 +20,7 @@ import { SubscriptionTier } from "@mediflow/database";
  */
 export class UpdateTenantDto {
   // ── Tenant profile ──────────────────────────────────────────────────────────
-  @ApiPropertyOptional({ example: "Apollo Hospitals" })
+  @ApiPropertyOptional({ example: 'Apollo Hospitals' })
   @IsOptional()
   @IsString()
   @MinLength(2)
@@ -33,7 +33,7 @@ export class UpdateTenantDto {
   @ApiPropertyOptional() @IsOptional() @IsString() pincode?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() gstin?: string;
   @ApiPropertyOptional({
-    description: "CGST rate in %, e.g. 9 for 9%",
+    description: 'CGST rate in %, e.g. 9 for 9%',
     example: 9,
   })
   @IsOptional()
@@ -42,7 +42,7 @@ export class UpdateTenantDto {
   @Max(50)
   cgstRate?: number;
   @ApiPropertyOptional({
-    description: "SGST rate in %, e.g. 9 for 9%",
+    description: 'SGST rate in %, e.g. 9 for 9%',
     example: 9,
   })
   @IsOptional()
@@ -51,7 +51,7 @@ export class UpdateTenantDto {
   @Max(50)
   sgstRate?: number;
   @ApiPropertyOptional({
-    description: "IGST rate in %, e.g. 18 for 18%",
+    description: 'IGST rate in %, e.g. 18 for 18%',
     example: 18,
   })
   @IsOptional()
@@ -76,7 +76,7 @@ export class UpdateTenantDto {
 
   @ApiPropertyOptional({
     description:
-      "Allow doctors to start consultations before the fee is paid (patient pays at the end). Defaults to false — payment is required before check-in.",
+      'Allow doctors to start consultations before the fee is paid (patient pays at the end). Defaults to false — payment is required before check-in.',
   })
   @IsOptional()
   @IsBoolean()
@@ -94,13 +94,13 @@ export class UpdateTenantDto {
 
   // ── Admin user ─────────────────────────────────────────────────────────────
   /** Change the ADMIN user's login email */
-  @ApiPropertyOptional({ example: "admin@hospital.com" })
+  @ApiPropertyOptional({ example: 'admin@hospital.com' })
   @IsOptional()
   @IsEmail()
   adminEmail?: string;
 
   /** Set a specific new password for the ADMIN user (min 8 chars) */
-  @ApiPropertyOptional({ example: "NewPass@123" })
+  @ApiPropertyOptional({ example: 'NewPass@123' })
   @IsOptional()
   @IsString()
   @MinLength(8)

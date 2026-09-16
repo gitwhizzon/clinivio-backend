@@ -9,22 +9,22 @@ import {
   JoinColumn,
   Unique,
   Index,
-} from "typeorm";
-import { LabOrderStatus, LabResultFlag } from "./enums";
-import { Tenant } from "./tenant.entity";
-import { Patient } from "./patient.entity";
-import { User } from "./user.entity";
+} from 'typeorm';
+import { LabOrderStatus, LabResultFlag } from './enums';
+import { Tenant } from './tenant.entity';
+import { Patient } from './patient.entity';
+import { User } from './user.entity';
 
 // ─── Lab Test Catalog ─────────────────────────────────────────────────────────
 
-@Entity("lab_tests")
-@Unique("tenant_lab_test_code_unique", ["tenantId", "code"])
-@Index(["tenantId"])
+@Entity('lab_tests')
+@Unique('tenant_lab_test_code_unique', ['tenantId', 'code'])
+@Index(['tenantId'])
 export class LabTest {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
   @Column()
@@ -39,101 +39,101 @@ export class LabTest {
   @Column({ nullable: true })
   unit: string | null;
 
-  @Column({ name: "normal_range", nullable: true })
+  @Column({ name: 'normal_range', nullable: true })
   normalRange: string | null;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: string;
 
   @Column({
-    name: "gst_rate",
-    type: "decimal",
+    name: 'gst_rate',
+    type: 'decimal',
     precision: 5,
     scale: 2,
     nullable: true,
   })
   gstRate: string | null;
 
-  @Column({ name: "turnaround_hours", type: "int", default: 24 })
+  @Column({ name: 'turnaround_hours', type: 'int', default: 24 })
   turnaround: number;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @OneToMany("LabOrderItem", "labTest", { eager: false })
+  @OneToMany('LabOrderItem', 'labTest', { eager: false })
   orderItems: any[];
 }
 
 // ─── Lab Order ────────────────────────────────────────────────────────────────
 
-@Entity("lab_orders")
-@Unique("tenant_lab_order_number_unique", ["tenantId", "orderNumber"])
-@Index(["tenantId"])
-@Index(["tenantId", "status"])
-@Index(["tenantId", "patientId"])
+@Entity('lab_orders')
+@Unique('tenant_lab_order_number_unique', ['tenantId', 'orderNumber'])
+@Index(['tenantId'])
+@Index(['tenantId', 'status'])
+@Index(['tenantId', 'patientId'])
 export class LabOrder {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: "order_number" })
+  @Column({ name: 'order_number' })
   orderNumber: string;
 
-  @Column({ name: "patient_id" })
+  @Column({ name: 'patient_id' })
   patientId: string;
 
-  @Column({ name: "appointment_id", nullable: true })
+  @Column({ name: 'appointment_id', nullable: true })
   appointmentId: string | null;
 
-  @Column({ name: "ordered_by_id" })
+  @Column({ name: 'ordered_by_id' })
   orderedById: string;
 
-  @Column({ name: "assigned_to_id", nullable: true })
+  @Column({ name: 'assigned_to_id', nullable: true })
   assignedToId: string | null;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: LabOrderStatus,
     default: LabOrderStatus.PENDING,
   })
   status: LabOrderStatus;
 
-  @Column({ default: "ROUTINE" })
+  @Column({ default: 'ROUTINE' })
   priority: string;
 
-  @Column({ name: "clinical_notes", nullable: true, type: "text" })
+  @Column({ name: 'clinical_notes', nullable: true, type: 'text' })
   clinicalNotes: string | null;
 
-  @Column({ name: "sample_type", nullable: true })
+  @Column({ name: 'sample_type', nullable: true })
   sampleType: string | null;
 
-  @Column({ name: "collected_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'collected_at', type: 'timestamptz', nullable: true })
   collectedAt: Date | null;
 
-  @Column({ name: "completed_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt: Date | null;
 
-  @Column({ name: "payment_status", default: "UNPAID" })
+  @Column({ name: 'payment_status', default: 'UNPAID' })
   paymentStatus: string;
 
   @Column({
-    name: "amount_due",
-    type: "decimal",
+    name: 'amount_due',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
@@ -141,117 +141,117 @@ export class LabOrder {
   amountDue: string;
 
   @Column({
-    name: "amount_paid",
-    type: "decimal",
+    name: 'amount_paid',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
   })
   amountPaid: string;
 
-  @Column({ name: "payment_method", nullable: true })
+  @Column({ name: 'payment_method', nullable: true })
   paymentMethod: string | null;
 
-  @Column({ name: "payment_collected_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'payment_collected_at', type: 'timestamptz', nullable: true })
   paymentCollectedAt: Date | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @ManyToOne(() => Patient, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "patient_id" })
+  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'patient_id' })
   patient: Patient;
 
-  @ManyToOne(() => User, { onDelete: "RESTRICT" })
-  @JoinColumn({ name: "ordered_by_id" })
+  @ManyToOne(() => User, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'ordered_by_id' })
   orderedBy: User;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
-  @JoinColumn({ name: "assigned_to_id" })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'assigned_to_id' })
   assignedTo: User | null;
 
-  @ManyToOne("Appointment", "labOrders", {
+  @ManyToOne('Appointment', 'labOrders', {
     nullable: true,
-    onDelete: "SET NULL",
+    onDelete: 'SET NULL',
   })
-  @JoinColumn({ name: "appointment_id" })
+  @JoinColumn({ name: 'appointment_id' })
   appointment: any;
 
-  @OneToMany("LabOrderItem", "labOrder", { cascade: true, eager: false })
+  @OneToMany('LabOrderItem', 'labOrder', { cascade: true, eager: false })
   items: any[];
 }
 
 // ─── Lab Order Item ───────────────────────────────────────────────────────────
 
-@Entity("lab_order_items")
+@Entity('lab_order_items')
 export class LabOrderItem {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "lab_order_id" })
+  @Column({ name: 'lab_order_id' })
   labOrderId: string;
 
-  @Column({ name: "lab_test_id" })
+  @Column({ name: 'lab_test_id' })
   labTestId: string;
 
-  @Column({ nullable: true, type: "text" })
+  @Column({ nullable: true, type: 'text' })
   result: string | null;
 
   @Column({ nullable: true })
   unit: string | null;
 
-  @Column({ name: "normal_range", nullable: true })
+  @Column({ name: 'normal_range', nullable: true })
   normalRange: string | null;
 
-  @Column({ type: "enum", enum: LabResultFlag, nullable: true })
+  @Column({ type: 'enum', enum: LabResultFlag, nullable: true })
   flag: LabResultFlag | null;
 
-  @Column({ nullable: true, type: "text" })
+  @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
-  @Column({ name: "is_outsourced", default: false })
+  @Column({ name: 'is_outsourced', default: false })
   isOutsourced: boolean;
 
-  @Column({ name: "external_lab_name", nullable: true })
+  @Column({ name: 'external_lab_name', nullable: true })
   externalLabName: string | null;
 
-  @Column({ name: "external_reference", nullable: true })
+  @Column({ name: 'external_reference', nullable: true })
   externalReference: string | null;
 
-  @Column({ name: "outsourced_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'outsourced_at', type: 'timestamptz', nullable: true })
   outsourcedAt: Date | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => LabOrder, (o) => o.items, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "lab_order_id" })
+  @ManyToOne(() => LabOrder, (o) => o.items, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'lab_order_id' })
   labOrder: LabOrder;
 
-  @ManyToOne(() => LabTest, (t) => t.orderItems, { onDelete: "RESTRICT" })
-  @JoinColumn({ name: "lab_test_id" })
+  @ManyToOne(() => LabTest, (t) => t.orderItems, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'lab_test_id' })
   labTest: LabTest;
 }
 
-@Entity("lab_reagents")
+@Entity('lab_reagents')
 export class LabReagent {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
   @Column()
@@ -261,8 +261,8 @@ export class LabReagent {
   unit: string;
 
   @Column({
-    name: "current_qty",
-    type: "decimal",
+    name: 'current_qty',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
@@ -270,8 +270,8 @@ export class LabReagent {
   currentQty: string;
 
   @Column({
-    name: "reorder_level",
-    type: "decimal",
+    name: 'reorder_level',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 10,
@@ -279,8 +279,8 @@ export class LabReagent {
   reorderLevel: string;
 
   @Column({
-    name: "unit_cost",
-    type: "decimal",
+    name: 'unit_cost',
+    type: 'decimal',
     precision: 10,
     scale: 2,
     default: 0,
@@ -290,69 +290,69 @@ export class LabReagent {
   @Column({ nullable: true })
   manufacturer: string | null;
 
-  @Column({ name: "batch_no", nullable: true })
+  @Column({ name: 'batch_no', nullable: true })
   batchNo: string | null;
 
-  @Column({ name: "expiry_date", type: "date", nullable: true })
+  @Column({ name: 'expiry_date', type: 'date', nullable: true })
   expiryDate: string | null;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
   @OneToMany(() => LabReagentUsage, (u) => u.reagent)
   usageLog: LabReagentUsage[];
 }
 
-@Entity("lab_reagent_usage")
+@Entity('lab_reagent_usage')
 export class LabReagentUsage {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: "reagent_id" })
+  @Column({ name: 'reagent_id' })
   reagentId: string;
 
-  @Column({ name: "lab_order_id", nullable: true })
+  @Column({ name: 'lab_order_id', nullable: true })
   labOrderId: string | null;
 
-  @Column({ type: "decimal", precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   quantity: string;
 
-  @Column({ default: "USE" })
+  @Column({ default: 'USE' })
   type: string;
 
-  @Column({ nullable: true, type: "text" })
+  @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
-  @Column({ name: "used_by", nullable: true })
+  @Column({ name: 'used_by', nullable: true })
   usedBy: string | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => LabReagent, (r) => r.usageLog, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "reagent_id" })
+  @ManyToOne(() => LabReagent, (r) => r.usageLog, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'reagent_id' })
   reagent: LabReagent;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 }

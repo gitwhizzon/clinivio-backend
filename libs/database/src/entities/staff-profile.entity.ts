@@ -1,7 +1,12 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  OneToOne, ManyToOne, JoinColumn,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Department } from './department.entity';
@@ -79,7 +84,10 @@ export class StaffProfile {
   @JoinColumn({ name: 'user_id' })
   user: any;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

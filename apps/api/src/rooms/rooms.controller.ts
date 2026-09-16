@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -56,7 +63,11 @@ export class RoomsController {
   @Patch(':id')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Update room' })
-  update(@Param('id') id: string, @TenantId() tenantId: string, @Body() dto: UpdateRoomDto) {
+  update(
+    @Param('id') id: string,
+    @TenantId() tenantId: string,
+    @Body() dto: UpdateRoomDto,
+  ) {
     return this.svc.update(id, tenantId, dto);
   }
 
@@ -89,7 +100,12 @@ export class RoomsController {
     @TenantId() tenantId: string,
     @Body('notes') notes?: string,
   ) {
-    return this.svc.updateBedStatus(bedId, tenantId, BedStatus.UNDER_MAINTENANCE, notes);
+    return this.svc.updateBedStatus(
+      bedId,
+      tenantId,
+      BedStatus.UNDER_MAINTENANCE,
+      notes,
+    );
   }
 
   @Post(':id/beds')

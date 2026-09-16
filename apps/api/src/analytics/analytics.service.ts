@@ -1,68 +1,66 @@
-import { Injectable } from "@nestjs/common";
-import { In } from "typeorm";
+import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 import {
   Patient,
   Prescription,
-  PrescriptionItem,
   Consultation,
   Appointment,
   LabOrder,
-  LabOrderItem,
   TenantEntityManager,
-} from "@mediflow/database";
-import { AiService } from "../ai/ai.service";
+} from '@mediflow/database';
+import { AiService } from '../ai/ai.service';
 
 export const COMMON_CONDITIONS = [
-  "Diabetic (Type 1)",
-  "Diabetic (Type 2)",
-  "Pre-Diabetic",
-  "Hypertension",
-  "Hypotension",
-  "Anemia (Iron Deficiency)",
-  "Anemia (Megaloblastic)",
-  "Asthma",
-  "COPD",
-  "Bronchitis",
-  "CKD (Chronic Kidney Disease)",
-  "AKI",
-  "CAD (Coronary Artery Disease)",
-  "Heart Failure",
-  "Arrhythmia",
-  "Thyroid (Hypothyroid)",
-  "Thyroid (Hyperthyroid)",
-  "Obesity",
-  "Underweight",
-  "Anxiety",
-  "Depression",
-  "Bipolar Disorder",
-  "Arthritis (Rheumatoid)",
-  "Arthritis (Osteo)",
-  "Gout",
-  "Migraine",
-  "Epilepsy",
+  'Diabetic (Type 1)',
+  'Diabetic (Type 2)',
+  'Pre-Diabetic',
+  'Hypertension',
+  'Hypotension',
+  'Anemia (Iron Deficiency)',
+  'Anemia (Megaloblastic)',
+  'Asthma',
+  'COPD',
+  'Bronchitis',
+  'CKD (Chronic Kidney Disease)',
+  'AKI',
+  'CAD (Coronary Artery Disease)',
+  'Heart Failure',
+  'Arrhythmia',
+  'Thyroid (Hypothyroid)',
+  'Thyroid (Hyperthyroid)',
+  'Obesity',
+  'Underweight',
+  'Anxiety',
+  'Depression',
+  'Bipolar Disorder',
+  'Arthritis (Rheumatoid)',
+  'Arthritis (Osteo)',
+  'Gout',
+  'Migraine',
+  'Epilepsy',
   "Parkinson's",
-  "Liver Disease (NAFLD)",
-  "Liver Disease (Cirrhosis)",
-  "Hepatitis B",
-  "Hepatitis C",
-  "Cancer",
-  "Stroke / TIA",
-  "Pregnancy",
-  "Post-Surgical",
-  "Immunocompromised",
-  "Dengue",
-  "Malaria",
-  "Typhoid",
-  "TB",
-  "Sickle Cell",
-  "Thalassemia",
-  "Psoriasis",
-  "Eczema",
-  "PCOD / PCOS",
-  "Endometriosis",
-  "Glaucoma",
-  "Cataracts",
-  "Diabetic Retinopathy",
+  'Liver Disease (NAFLD)',
+  'Liver Disease (Cirrhosis)',
+  'Hepatitis B',
+  'Hepatitis C',
+  'Cancer',
+  'Stroke / TIA',
+  'Pregnancy',
+  'Post-Surgical',
+  'Immunocompromised',
+  'Dengue',
+  'Malaria',
+  'Typhoid',
+  'TB',
+  'Sickle Cell',
+  'Thalassemia',
+  'Psoriasis',
+  'Eczema',
+  'PCOD / PCOS',
+  'Endometriosis',
+  'Glaucoma',
+  'Cataracts',
+  'Diabetic Retinopathy',
 ];
 
 @Injectable()
@@ -80,7 +78,7 @@ export class AnalyticsService {
   ): Promise<string[]> {
     const appts = await this.db.repo(Appointment).find({
       where: { tenantId, doctorId },
-      select: ["patientId"],
+      select: ['patientId'],
     });
     return [...new Set(appts.map((a) => a.patientId))];
   }
@@ -93,7 +91,7 @@ export class AnalyticsService {
       this.db.repo(Prescription).count({ where: { tenantId, doctorId } }),
       this.db.repo(Appointment).find({
         where: { tenantId, doctorId },
-        select: ["patientId"],
+        select: ['patientId'],
       }),
     ]);
     const uniquePatients = new Set(appts.map((a) => a.patientId)).size;
@@ -115,7 +113,7 @@ export class AnalyticsService {
 
     const patients = await this.db.repo(Patient).find({
       where: patientWhere,
-      select: ["id", "conditions"] as any,
+      select: ['id', 'conditions'] as any,
     });
 
     const counts: Record<string, number> = {};
@@ -152,7 +150,7 @@ export class AnalyticsService {
       scopedIds = await this.getDoctorPatientIds(tenantId, doctorId);
       if (!scopedIds.length)
         return {
-          condition: condition ?? "All",
+          condition: condition ?? 'All',
           patientCount: 0,
           medicines: [],
         };
@@ -163,7 +161,7 @@ export class AnalyticsService {
 
     const patients = await this.db.repo(Patient).find({
       where: patientWhere2,
-      select: ["id", "conditions"] as any,
+      select: ['id', 'conditions'] as any,
     });
 
     const targetIds = condition
@@ -173,14 +171,14 @@ export class AnalyticsService {
       : patients.map((p) => p.id);
 
     if (!targetIds.length)
-      return { condition: condition ?? "All", medicines: [] };
+      return { condition: condition ?? 'All', medicines: [] };
 
     const prescriptionWhere: any = { tenantId, patientId: In(targetIds) };
     if (doctorId) prescriptionWhere.doctorId = doctorId;
 
     const prescriptions = await this.db.repo(Prescription).find({
       where: prescriptionWhere,
-      relations: ["items"],
+      relations: ['items'],
     });
 
     const medicineCounts: Record<string, number> = {};
@@ -197,7 +195,7 @@ export class AnalyticsService {
       .slice(0, 15);
 
     return {
-      condition: condition ?? "All",
+      condition: condition ?? 'All',
       patientCount: targetIds.length,
       medicines,
     };
@@ -223,7 +221,7 @@ export class AnalyticsService {
 
     const patients = await this.db.repo(Patient).find({
       where: patientWhere3,
-      select: ["id", "conditions"] as any,
+      select: ['id', 'conditions'] as any,
     });
 
     const targetIds = patients
@@ -244,12 +242,12 @@ export class AnalyticsService {
     const consultations = await this.db.repo(Consultation).find({
       where: consultationWhere,
       select: [
-        "bpSystolic",
-        "bpDiastolic",
-        "pulseRate",
-        "spo2",
-        "rbsMgDl",
-        "bmi",
+        'bpSystolic',
+        'bpDiastolic',
+        'pulseRate',
+        'spo2',
+        'rbsMgDl',
+        'bmi',
       ],
     });
 
@@ -305,12 +303,12 @@ export class AnalyticsService {
       patientCount: targetIds.length,
       consultationCount: consultations.length,
       averageVitals: {
-        bpSystolic: avg("bpSystolic"),
-        bpDiastolic: avg("bpDiastolic"),
-        pulseRate: avg("pulseRate"),
-        spo2: avg("spo2"),
-        rbsMgDl: avg("rbsMgDl"),
-        bmi: avg("bmi"),
+        bpSystolic: avg('bpSystolic'),
+        bpDiastolic: avg('bpDiastolic'),
+        pulseRate: avg('pulseRate'),
+        spo2: avg('spo2'),
+        rbsMgDl: avg('rbsMgDl'),
+        bmi: avg('bmi'),
       },
     };
   }
@@ -345,7 +343,7 @@ export class AnalyticsService {
       patientsWithConditionTags: patientsTagged,
       conditionDistribution: topConditions,
       topPrescribedMedicinesPerCondition: topMeds,
-      scope: doctorId ? "doctor's own patients" : "entire hospital",
+      scope: doctorId ? "doctor's own patients" : 'entire hospital',
     };
 
     const cacheKey = doctorId
@@ -405,15 +403,15 @@ export class AnalyticsService {
 
     const orders = await this.db.repo(LabOrder).find({
       where: orderWhere,
-      relations: ["items", "items.labTest"],
-      order: { createdAt: "DESC" },
+      relations: ['items', 'items.labTest'],
+      order: { createdAt: 'DESC' },
       take: 1000,
     });
 
     const inPeriod = orders.filter((o) => new Date(o.createdAt) >= since);
     const totalOrders = inPeriod.length;
     const completedOrders = inPeriod.filter(
-      (o) => o.status === "COMPLETED",
+      (o) => o.status === 'COMPLETED',
     ).length;
     const completionRate =
       totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
@@ -421,7 +419,7 @@ export class AnalyticsService {
     const allItems = inPeriod.flatMap((o) => o.items ?? []);
     const withResults = allItems.filter((i) => i.result);
     const abnormalCount = withResults.filter(
-      (i) => i.flag === "ABNORMAL" || i.flag === "CRITICAL",
+      (i) => i.flag === 'ABNORMAL' || i.flag === 'CRITICAL',
     ).length;
     const abnormalRate =
       withResults.length > 0
@@ -430,7 +428,7 @@ export class AnalyticsService {
 
     const testCounts: Record<string, number> = {};
     for (const item of allItems) {
-      const name = (item as any).labTest?.name ?? "Unknown";
+      const name = (item as any).labTest?.name ?? 'Unknown';
       testCounts[name] = (testCounts[name] ?? 0) + 1;
     }
     const topTests = Object.entries(testCounts)
@@ -440,7 +438,7 @@ export class AnalyticsService {
 
     const dailyCounts: Record<string, number> = {};
     for (const o of inPeriod) {
-      const date = new Date(o.createdAt).toISOString().split("T")[0];
+      const date = new Date(o.createdAt).toISOString().split('T')[0];
       dailyCounts[date] = (dailyCounts[date] ?? 0) + 1;
     }
     const dailyVolume = Object.entries(dailyCounts)
@@ -465,29 +463,29 @@ export class AnalyticsService {
       this.db.repo(Consultation).find({
         where: { patientId, tenantId },
         select: [
-          "createdAt",
-          "bpSystolic",
-          "bpDiastolic",
-          "pulseRate",
-          "spo2",
-          "bmi",
-          "temperature",
-          "weightKg",
-          "rbsMgDl",
+          'createdAt',
+          'bpSystolic',
+          'bpDiastolic',
+          'pulseRate',
+          'spo2',
+          'bmi',
+          'temperature',
+          'weightKg',
+          'rbsMgDl',
         ] as any,
-        order: { createdAt: "ASC" },
+        order: { createdAt: 'ASC' },
         take: 60,
       }),
       this.db.repo(LabOrder).find({
         where: { patientId, tenantId },
-        relations: ["items", "items.labTest"],
-        order: { createdAt: "ASC" },
+        relations: ['items', 'items.labTest'],
+        order: { createdAt: 'ASC' },
         take: 60,
       }),
     ]);
 
     const vitals = consultations.map((c) => ({
-      date: new Date(c.createdAt).toISOString().split("T")[0],
+      date: new Date(c.createdAt).toISOString().split('T')[0],
       bpSystolic: c.bpSystolic ?? null,
       bpDiastolic: c.bpDiastolic ?? null,
       pulseRate: c.pulseRate ?? null,
@@ -503,12 +501,12 @@ export class AnalyticsService {
         (o.items ?? [])
           .filter((i: any) => i.result)
           .map((i: any) => ({
-            date: new Date(o.createdAt).toISOString().split("T")[0],
+            date: new Date(o.createdAt).toISOString().split('T')[0],
             orderNumber: o.orderNumber,
-            test: i.labTest?.name ?? "Unknown",
+            test: i.labTest?.name ?? 'Unknown',
             result: i.result,
-            unit: i.unit ?? i.labTest?.unit ?? "",
-            normalRange: i.normalRange ?? i.labTest?.normalRange ?? "",
+            unit: i.unit ?? i.labTest?.unit ?? '',
+            normalRange: i.normalRange ?? i.labTest?.normalRange ?? '',
             flag: i.flag ?? null,
           })),
       )
@@ -530,16 +528,16 @@ export class AnalyticsService {
 
     const patients = await this.db.repo(Patient).find({
       where: patientWhere,
-      select: ["id", "dob"] as any,
+      select: ['id', 'dob'] as any,
     });
 
     const buckets: Record<string, number> = {
-      "0–18": 0,
-      "19–30": 0,
-      "31–45": 0,
-      "46–60": 0,
-      "61–75": 0,
-      "76+": 0,
+      '0–18': 0,
+      '19–30': 0,
+      '31–45': 0,
+      '46–60': 0,
+      '61–75': 0,
+      '76+': 0,
     };
 
     const now = Date.now();
@@ -552,12 +550,12 @@ export class AnalyticsService {
       const age = Math.floor(
         (now - new Date(p.dob).getTime()) / (365.25 * 24 * 3600 * 1000),
       );
-      if (age <= 18) buckets["0–18"]++;
-      else if (age <= 30) buckets["19–30"]++;
-      else if (age <= 45) buckets["31–45"]++;
-      else if (age <= 60) buckets["46–60"]++;
-      else if (age <= 75) buckets["61–75"]++;
-      else buckets["76+"]++;
+      if (age <= 18) buckets['0–18']++;
+      else if (age <= 30) buckets['19–30']++;
+      else if (age <= 45) buckets['31–45']++;
+      else if (age <= 60) buckets['46–60']++;
+      else if (age <= 75) buckets['61–75']++;
+      else buckets['76+']++;
     }
 
     return {

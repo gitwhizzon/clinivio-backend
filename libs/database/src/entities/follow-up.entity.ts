@@ -1,6 +1,10 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn, CreateDateColumn,
-  ManyToOne, JoinColumn,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Consultation } from './consultation.entity';
@@ -38,7 +42,10 @@ export class FollowUp {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

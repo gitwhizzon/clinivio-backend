@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 export interface PatientJwtPayload {
-  sub: string;        // patientAccountId
+  sub: string; // patientAccountId
   patientId: string;
   tenantId: string;
   type: 'PATIENT';
@@ -13,12 +13,18 @@ export interface PatientJwtPayload {
 }
 
 @Injectable()
-export class PatientJwtStrategy extends PassportStrategy(Strategy, 'patient-jwt') {
+export class PatientJwtStrategy extends PassportStrategy(
+  Strategy,
+  'patient-jwt',
+) {
   constructor(configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('jwt.secret') ?? process.env.JWT_SECRET ?? 'dev-secret',
+      secretOrKey:
+        configService.get<string>('jwt.secret') ??
+        process.env.JWT_SECRET ??
+        'dev-secret',
     });
   }
 

@@ -1,6 +1,10 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn, CreateDateColumn,
-  ManyToOne, JoinColumn,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { NotificationChannel, NotificationStatus } from './enums';
 import { Tenant } from './tenant.entity';
@@ -29,7 +33,11 @@ export class NotificationLog {
   @Column({ type: 'jsonb' })
   payload: any;
 
-  @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.QUEUED })
+  @Column({
+    type: 'enum',
+    enum: NotificationStatus,
+    default: NotificationStatus.QUEUED,
+  })
   status: NotificationStatus;
 
   @Column({ nullable: true })
@@ -50,7 +58,10 @@ export class NotificationLog {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

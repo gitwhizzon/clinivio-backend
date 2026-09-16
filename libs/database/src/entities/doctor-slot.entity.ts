@@ -1,13 +1,23 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  ManyToOne, JoinColumn, Unique,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { DoctorProfile } from './doctor-profile.entity';
 
 @Entity('doctor_slots')
-@Unique('tenant_doctor_slot_unique', ['tenantId', 'doctorId', 'slotDate', 'startTime'])
+@Unique('tenant_doctor_slot_unique', [
+  'tenantId',
+  'doctorId',
+  'slotDate',
+  'startTime',
+])
 export class DoctorSlot {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -48,7 +58,10 @@ export class DoctorSlot {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

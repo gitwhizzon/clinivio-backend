@@ -26,7 +26,11 @@ export class TenantContextMiddleware implements NestMiddleware {
     @InjectDataSource() private readonly platformDs: DataSource,
   ) {}
 
-  async use(req: Request & { tenantSlug?: string }, res: Response, next: NextFunction) {
+  async use(
+    req: Request & { tenantSlug?: string },
+    res: Response,
+    next: NextFunction,
+  ) {
     const slug = this.extractSlug(req);
 
     if (!slug) {
@@ -49,7 +53,9 @@ export class TenantContextMiddleware implements NestMiddleware {
 
       await this.registry.runWithTenant(tenant.id, tenant.slug, () => next());
     } catch (err) {
-      this.logger.error(`TenantContextMiddleware error for slug "${slug}": ${(err as Error).message}`);
+      this.logger.error(
+        `TenantContextMiddleware error for slug "${slug}": ${(err as Error).message}`,
+      );
       next();
     }
   }
@@ -77,14 +83,17 @@ export class TenantContextMiddleware implements NestMiddleware {
     const PLATFORM_BASE_DOMAINS = new Set(
       (process.env.PLATFORM_DOMAINS ?? 'clinivio.ai,whizzon.ai')
         .split(',')
-        .map(d => d.trim().toLowerCase()),
+        .map((d) => d.trim().toLowerCase()),
     );
     const PLATFORM_SUBDOMAINS = new Set(['www', 'admin', 'api', 'app']);
 
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join('.');
-      const subdomain  = parts[0].toLowerCase();
-      if (PLATFORM_BASE_DOMAINS.has(baseDomain) && !PLATFORM_SUBDOMAINS.has(subdomain)) {
+      const subdomain = parts[0].toLowerCase();
+      if (
+        PLATFORM_BASE_DOMAINS.has(baseDomain) &&
+        !PLATFORM_SUBDOMAINS.has(subdomain)
+      ) {
         return subdomain;
       }
     }

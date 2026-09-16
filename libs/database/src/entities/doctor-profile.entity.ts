@@ -1,7 +1,12 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToOne, JoinColumn,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { User } from './user.entity';
@@ -36,7 +41,13 @@ export class DoctorProfile {
   @Column({ name: 'experience_years', type: 'int', nullable: true })
   experienceYears: number | null;
 
-  @Column({ name: 'consultation_fee', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'consultation_fee',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   consultationFee: string | null;
 
   @Column({ type: 'text', array: true, default: ['EN'] })
@@ -58,7 +69,10 @@ export class DoctorProfile {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

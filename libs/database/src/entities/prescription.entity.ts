@@ -7,66 +7,66 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-} from "typeorm";
-import { Tenant } from "./tenant.entity";
-import { Consultation } from "./consultation.entity";
+} from 'typeorm';
+import { Tenant } from './tenant.entity';
+import { Consultation } from './consultation.entity';
 
-@Entity("prescriptions")
+@Entity('prescriptions')
 export class Prescription {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: "consultation_id" })
+  @Column({ name: 'consultation_id' })
   consultationId: string;
 
-  @Column({ name: "patient_id" })
+  @Column({ name: 'patient_id' })
   patientId: string;
 
-  @Column({ name: "doctor_id" })
+  @Column({ name: 'doctor_id' })
   doctorId: string;
 
-  @Column({ nullable: true, type: "text" })
+  @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @ManyToOne(() => Consultation, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "consultation_id" })
+  @ManyToOne(() => Consultation, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'consultation_id' })
   consultation: Consultation;
 
-  @OneToMany("PrescriptionItem", "prescription", {
+  @OneToMany('PrescriptionItem', 'prescription', {
     cascade: true,
     eager: false,
   })
   items: any[];
 }
 
-@Entity("prescription_items")
+@Entity('prescription_items')
 export class PrescriptionItem {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "prescription_id" })
+  @Column({ name: 'prescription_id' })
   prescriptionId: string;
 
-  @Column({ name: "medicine_name" })
+  @Column({ name: 'medicine_name' })
   medicineName: string;
 
-  @Column({ name: "generic_name", nullable: true })
+  @Column({ name: 'generic_name', nullable: true })
   genericName: string | null;
 
   @Column()
@@ -81,16 +81,16 @@ export class PrescriptionItem {
   @Column({ nullable: true })
   instructions: string | null;
 
-  @Column({ type: "int", default: 1 })
+  @Column({ type: 'int', default: 1 })
   quantity: number;
 
-  @Column({ name: "is_substitutable", default: true })
+  @Column({ name: 'is_substitutable', default: true })
   isSubstitutable: boolean;
 
-  @Column({ name: "inventory_id", nullable: true })
+  @Column({ name: 'inventory_id', nullable: true })
   inventoryId: string | null;
 
-  @ManyToOne(() => Prescription, (p) => p.items, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "prescription_id" })
+  @ManyToOne(() => Prescription, (p) => p.items, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'prescription_id' })
   prescription: Prescription;
 }

@@ -9,81 +9,81 @@ import {
   JoinColumn,
   Index,
   Unique,
-} from "typeorm";
-import { Role } from "./enums";
-import { Tenant } from "./tenant.entity";
+} from 'typeorm';
+import { Role } from './enums';
+import { Tenant } from './tenant.entity';
 
-@Entity("users")
-@Unique("tenant_user_email_unique", ["tenantId", "email"])
-@Unique("tenant_staff_id_unique", ["tenantId", "staffId"])
+@Entity('users')
+@Unique('tenant_user_email_unique', ['tenantId', 'email'])
+@Unique('tenant_staff_id_unique', ['tenantId', 'staffId'])
 export class User {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: "tenant_id" })
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
   @Column()
   email: string;
 
-  @Column({ name: "staff_id", nullable: true })
+  @Column({ name: 'staff_id', nullable: true })
   staffId: string | null;
 
   @Column({ nullable: true })
   phone: string | null;
 
-  @Column({ name: "password_hash" })
+  @Column({ name: 'password_hash' })
   passwordHash: string;
 
-  @Column({ name: "first_name" })
+  @Column({ name: 'first_name' })
   firstName: string;
 
-  @Column({ name: "last_name" })
+  @Column({ name: 'last_name' })
   lastName: string;
 
-  @Column({ type: "enum", enum: Role })
+  @Column({ type: 'enum', enum: Role })
   role: Role;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @Column({ name: "mfa_enabled", default: false })
+  @Column({ name: 'mfa_enabled', default: false })
   mfaEnabled: boolean;
 
-  @Column({ name: "last_login_at", type: "timestamptz", nullable: true })
+  @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
   lastLoginAt: Date | null;
 
   @Column({
-    name: "password_reset_token",
+    name: 'password_reset_token',
     nullable: true,
-    type: "varchar",
+    type: 'varchar',
     length: 128,
   })
   passwordResetToken: string | null;
 
   @Column({
-    name: "password_reset_expiry",
-    type: "timestamptz",
+    name: 'password_reset_expiry',
+    type: 'timestamptz',
     nullable: true,
   })
   passwordResetExpiry: Date | null;
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @ManyToOne(() => Tenant, {
-    onDelete: "CASCADE",
+    onDelete: 'CASCADE',
     createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: "tenant_id" })
+  @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @OneToOne("DoctorProfile", "user", { nullable: true })
+  @OneToOne('DoctorProfile', 'user', { nullable: true })
   doctorProfile: any | null;
 
-  @OneToOne("StaffProfile", "user", { nullable: true })
+  @OneToOne('StaffProfile', 'user', { nullable: true })
   staffProfile: any | null;
 }

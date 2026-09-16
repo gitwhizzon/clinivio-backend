@@ -1,9 +1,21 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToOne, OneToMany, JoinColumn, Index,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToOne,
+  OneToMany,
+  JoinColumn,
+  Index,
 } from 'typeorm';
-import { VisitType, AppointmentType, AppointmentStatus, PaymentStatus } from './enums';
+import {
+  VisitType,
+  AppointmentType,
+  AppointmentStatus,
+  PaymentStatus,
+} from './enums';
 import { Tenant } from './tenant.entity';
 import { Patient } from './patient.entity';
 import { User } from './user.entity';
@@ -33,13 +45,27 @@ export class Appointment {
   @Column({ name: 'department_id', nullable: true })
   departmentId: string | null;
 
-  @Column({ name: 'visit_type', type: 'enum', enum: VisitType, default: VisitType.OPD })
+  @Column({
+    name: 'visit_type',
+    type: 'enum',
+    enum: VisitType,
+    default: VisitType.OPD,
+  })
   visitType: VisitType;
 
-  @Column({ name: 'appointment_type', type: 'enum', enum: AppointmentType, default: AppointmentType.IN_PERSON })
+  @Column({
+    name: 'appointment_type',
+    type: 'enum',
+    enum: AppointmentType,
+    default: AppointmentType.IN_PERSON,
+  })
   appointmentType: AppointmentType;
 
-  @Column({ type: 'enum', enum: AppointmentStatus, default: AppointmentStatus.REGISTERED })
+  @Column({
+    type: 'enum',
+    enum: AppointmentStatus,
+    default: AppointmentStatus.REGISTERED,
+  })
   status: AppointmentStatus;
 
   @Column({ name: 'chief_complaint', nullable: true })
@@ -54,10 +80,21 @@ export class Appointment {
   @Column({ name: 'token_number', type: 'int', nullable: true })
   tokenNumber: number | null;
 
-  @Column({ name: 'payment_status', type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Column({
+    name: 'payment_status',
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
   paymentStatus: PaymentStatus;
 
-  @Column({ name: 'payment_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'payment_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   paymentAmount: string | null;
 
   @Column({ name: 'razorpay_order_id', nullable: true })
@@ -66,7 +103,11 @@ export class Appointment {
   @Column({ name: 'razorpay_payment_id', nullable: true })
   razorpayPaymentId: string | null;
 
-  @Column({ name: 'registered_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'registered_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   registeredAt: Date;
 
   @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
@@ -90,7 +131,11 @@ export class Appointment {
   @Column({ name: 'cancellation_reason', nullable: true })
   cancellationReason: string | null;
 
-  @Column({ name: 'confirmation_24h_sent_at', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'confirmation_24h_sent_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
   confirmation24hSentAt: Date | null;
 
   @Column({ name: 'reminder_1h_sent_at', type: 'timestamptz', nullable: true })
@@ -105,7 +150,10 @@ export class Appointment {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 

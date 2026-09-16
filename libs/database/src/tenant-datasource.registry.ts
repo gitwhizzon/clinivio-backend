@@ -1,7 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { AsyncLocalStorage } from "async_hooks";
-import { DataSource } from "typeorm";
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { AsyncLocalStorage } from 'async_hooks';
+import { DataSource } from 'typeorm';
 
 interface TenantMarker {
   tenantId: string;
@@ -49,8 +49,8 @@ export class TenantDataSourceRegistry {
   get current(): DataSource {
     if (!this.als.getStore()) {
       throw new Error(
-        "TenantDataSourceRegistry: no tenant context. " +
-          "Ensure TenantContextMiddleware is applied and the route carries a tenant slug.",
+        'TenantDataSourceRegistry: no tenant context. ' +
+          'Ensure TenantContextMiddleware is applied and the route carries a tenant slug.',
       );
     }
     return this.dataSource;

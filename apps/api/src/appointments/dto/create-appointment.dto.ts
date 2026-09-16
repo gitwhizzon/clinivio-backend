@@ -1,4 +1,10 @@
-import { IsString, IsUUID, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitType, AppointmentType } from '@mediflow/database';
 

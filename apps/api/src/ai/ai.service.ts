@@ -1,18 +1,18 @@
-import { Injectable, Logger, NotFoundException, Inject } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource, In } from "typeorm";
-import Anthropic from "@anthropic-ai/sdk";
-import { ConfigService } from "@nestjs/config";
-import type { Redis } from "ioredis";
+import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, In } from 'typeorm';
+import Anthropic from '@anthropic-ai/sdk';
+import { ConfigService } from '@nestjs/config';
+import type { Redis } from 'ioredis';
 import {
   Patient,
   Consultation,
   LabOrder,
   TenantDataSourceRegistry,
-} from "@mediflow/database";
-import { AuditService } from "../audit/audit.service";
+} from '@mediflow/database';
+import { AuditService } from '../audit/audit.service';
 
-export const AI_REDIS_CLIENT = "AI_REDIS_CLIENT";
+export const AI_REDIS_CLIENT = 'AI_REDIS_CLIENT';
 
 // ── De-identified shape sent to Claude — NO PII ───────────────────────────────
 
@@ -101,10 +101,10 @@ export class AiService {
 
   private get client(): Anthropic {
     if (!this._client) {
-      const apiKey = this.config.get<string>("ANTHROPIC_API_KEY");
+      const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
       if (!apiKey) {
         throw new Error(
-          "ANTHROPIC_API_KEY is not configured. Add it to your environment variables.",
+          'ANTHROPIC_API_KEY is not configured. Add it to your environment variables.',
         );
       }
       this._client = new Anthropic({ apiKey });
@@ -150,19 +150,19 @@ export class AiService {
         })),
       );
 
-      const apptLabOrders = ordersMap.get(c.appointmentId ?? "") ?? [];
+      const apptLabOrders = ordersMap.get(c.appointmentId ?? '') ?? [];
       const labResults = apptLabOrders.flatMap((o) =>
         (o.items ?? [])
           .filter((item) => item.result)
           .map((item) => ({
-            test: item.labTest?.name ?? "Unknown",
+            test: item.labTest?.name ?? 'Unknown',
             result: item.result!,
             unit: item.unit ?? undefined,
             flag: item.flag ?? undefined,
           })),
       );
 
-      const vitals: AnonymisedVisit["vitals"] = {};
+      const vitals: AnonymisedVisit['vitals'] = {};
       if (c.bpSystolic && c.bpDiastolic)
         vitals.bp = `${c.bpSystolic}/${c.bpDiastolic} mmHg`;
       if (c.pulseRate) vitals.pulseRate = c.pulseRate;
@@ -174,7 +174,7 @@ export class AiService {
 
       return {
         daysAgo,
-        visitType: c.appointment?.visitType ?? "OPD",
+        visitType: c.appointment?.visitType ?? 'OPD',
         chiefComplaint: c.appointment?.chiefComplaint ?? undefined,
         diagnosis: c.diagnosis ?? undefined,
         observations: c.observations ?? undefined,
@@ -186,7 +186,7 @@ export class AiService {
 
     return {
       ageInYears,
-      sex: patient.gender ?? "Unknown",
+      sex: patient.gender ?? 'Unknown',
       bloodGroup: patient.bloodGroup ?? undefined,
       visits,
     };
@@ -197,11 +197,11 @@ export class AiService {
   private sanitiseOutput(text: string): string {
     // Strip anything that looks like a phone number, email, or UUID
     return text
-      .replace(/\b\d{10,12}\b/g, "[REDACTED]")
-      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[REDACTED]")
+      .replace(/\b\d{10,12}\b/g, '[REDACTED]')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED]')
       .replace(
         /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-        "[REDACTED]",
+        '[REDACTED]',
       );
   }
 
@@ -223,24 +223,24 @@ export class AiService {
     }
 
     // Fetch clinical data from tenant DB — no PII fields beyond what anonymiser drops
-    const tenantDs = await this.registry.getOrCreate(tenantId, "");
+    const tenantDs = await this.registry.getOrCreate(tenantId, '');
     const patient = await tenantDs.getRepository(Patient).findOne({
       where: { id: patientId, tenantId },
-      select: ["id", "dob", "gender", "bloodGroup"], // explicitly exclude name, phone, email, uhid
+      select: ['id', 'dob', 'gender', 'bloodGroup'], // explicitly exclude name, phone, email, uhid
     });
-    if (!patient) throw new NotFoundException("Patient not found");
+    if (!patient) throw new NotFoundException('Patient not found');
 
     const consultations = await tenantDs.getRepository(Consultation).find({
       where: { patientId, tenantId },
-      relations: ["appointment", "prescriptions", "prescriptions.items"],
-      order: { createdAt: "DESC" },
+      relations: ['appointment', 'prescriptions', 'prescriptions.items'],
+      order: { createdAt: 'DESC' },
       take: 20,
     });
 
     if (!consultations.length) {
       return {
         summary: null,
-        reason: "No consultation history available yet",
+        reason: 'No consultation history available yet',
         fromCache: false,
       };
     }
@@ -251,7 +251,7 @@ export class AiService {
     const labOrders = apptIds.length
       ? await tenantDs.getRepository(LabOrder).find({
           where: { appointmentId: In(apptIds) as any, tenantId },
-          relations: ["items", "items.labTest"],
+          relations: ['items', 'items.labTest'],
         })
       : [];
 
@@ -263,16 +263,16 @@ export class AiService {
     let rawSummary: string;
     try {
       const response = await this.client.messages.create({
-        model: "claude-haiku-4-5-20251001", // fast + cost-efficient for summaries
+        model: 'claude-haiku-4-5-20251001', // fast + cost-efficient for summaries
         max_tokens: 800,
         system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
+        messages: [{ role: 'user', content: userMessage }],
       });
 
-      const block = response.content.find((b) => b.type === "text");
-      rawSummary = block?.type === "text" ? block.text : "";
+      const block = response.content.find((b) => b.type === 'text');
+      rawSummary = block?.type === 'text' ? block.text : '';
     } catch (err: any) {
-      this.logger.error("[AI] Claude API call failed:", err?.message);
+      this.logger.error('[AI] Claude API call failed:', err?.message);
       throw err;
     }
 
@@ -291,12 +291,12 @@ export class AiService {
     await this.audit.log({
       tenantId,
       userId: requestUserId,
-      action: "AI_SUMMARY",
-      entityType: "Patient",
+      action: 'AI_SUMMARY',
+      entityType: 'Patient',
       entityId: patientId,
       description: `AI clinical summary generated (${consultations.length} consultations analysed)`,
       metadata: {
-        model: "claude-haiku-4-5-20251001",
+        model: 'claude-haiku-4-5-20251001',
         visitCount: consultations.length,
       },
     });
@@ -322,11 +322,11 @@ export class AiService {
     const prompt = `You are a clinical pharmacology assistant. A doctor needs prescription suggestions.
 
 Patient profile (de-identified):
-- Age: ${ageInYears ?? "Unknown"} years
-- Gender: ${gender ?? "Unknown"}
-- Chronic conditions: ${conditions.length ? conditions.join(", ") : "None recorded"}
-- Current diagnosis: ${diagnosis || "Not specified"}
-- Observations: ${observations || "None"}
+- Age: ${ageInYears ?? 'Unknown'} years
+- Gender: ${gender ?? 'Unknown'}
+- Chronic conditions: ${conditions.length ? conditions.join(', ') : 'None recorded'}
+- Current diagnosis: ${diagnosis || 'Not specified'}
+- Observations: ${observations || 'None'}
 
 Suggest up to 5 appropriate medicines for the prescription. For each:
 1. Use the generic name (INN)
@@ -339,20 +339,20 @@ Return ONLY a valid JSON array (no markdown, no explanation):
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 700,
         system:
-          "You are a clinical pharmacology assistant. Return only valid JSON. No markdown code blocks.",
-        messages: [{ role: "user", content: prompt }],
+          'You are a clinical pharmacology assistant. Return only valid JSON. No markdown code blocks.',
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      const block = response.content.find((b) => b.type === "text");
-      const raw = block?.type === "text" ? block.text.trim() : "[]";
+      const block = response.content.find((b) => b.type === 'text');
+      const raw = block?.type === 'text' ? block.text.trim() : '[]';
 
       // Strip markdown code fences if model wraps the JSON
       const clean = raw
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/i, "")
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
         .trim();
 
       let suggestions: unknown[];
@@ -365,7 +365,7 @@ Return ONLY a valid JSON array (no markdown, no explanation):
 
       return { suggestions: suggestions.slice(0, 5) };
     } catch (err: any) {
-      this.logger.error("[AI] Prescription suggestions failed:", err?.message);
+      this.logger.error('[AI] Prescription suggestions failed:', err?.message);
       return { suggestions: [] };
     }
   }
@@ -422,15 +422,15 @@ Provide insights in exactly this structure:
 
     try {
       const response = await this.client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 900,
         system:
-          "You are a medical analytics AI. Analyse population-level de-identified clinical data. Use hedged language. Never reference individual patients.",
-        messages: [{ role: "user", content: userMessage }],
+          'You are a medical analytics AI. Analyse population-level de-identified clinical data. Use hedged language. Never reference individual patients.',
+        messages: [{ role: 'user', content: userMessage }],
       });
 
-      const block = response.content.find((b) => b.type === "text");
-      const rawInsights = block?.type === "text" ? block.text : "";
+      const block = response.content.find((b) => b.type === 'text');
+      const rawInsights = block?.type === 'text' ? block.text : '';
       const insights = this.sanitiseOutput(rawInsights);
 
       const result = {
@@ -445,16 +445,16 @@ Provide insights in exactly this structure:
       await this.audit.log({
         tenantId,
         userId: requestUserId,
-        action: "AI_POPULATION_INSIGHTS",
-        entityType: "Tenant",
+        action: 'AI_POPULATION_INSIGHTS',
+        entityType: 'Tenant',
         entityId: tenantId,
         description: `AI population analytics generated for ${payload.totalPatients} patients`,
-        metadata: { model: "claude-haiku-4-5-20251001" },
+        metadata: { model: 'claude-haiku-4-5-20251001' },
       });
 
       return result;
     } catch (err: any) {
-      this.logger.error("[AI] Population insights failed:", err?.message);
+      this.logger.error('[AI] Population insights failed:', err?.message);
       throw err;
     }
   }

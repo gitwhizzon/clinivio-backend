@@ -1,10 +1,21 @@
 import {
-  Controller, Get, Post, Delete, Body, Param, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles, TenantId } from '@mediflow/shared';
-import { SlotsService, CreateSlotDto, CreateSlotsBulkDto } from './slots.service';
+import {
+  SlotsService,
+  CreateSlotDto,
+  CreateSlotsBulkDto,
+} from './slots.service';
 
 @ApiTags('Slots')
 @ApiBearerAuth()
@@ -41,13 +52,18 @@ export class SlotsController {
   @Get('doctors-availability')
   @Roles('ADMIN', 'RECEPTIONIST')
   @ApiOperation({ summary: 'Get availability for all doctors on a date' })
-  doctorsAvailability(@TenantId() tenantId: string, @Query('date') date: string) {
+  doctorsAvailability(
+    @TenantId() tenantId: string,
+    @Query('date') date: string,
+  ) {
     return this.svc.findDoctorsAvailability(tenantId, date);
   }
 
   @Get('by-doctor/:doctorId')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
-  @ApiOperation({ summary: 'Get all slots for a doctor (with optional date range)' })
+  @ApiOperation({
+    summary: 'Get all slots for a doctor (with optional date range)',
+  })
   byDoctor(
     @TenantId() tenantId: string,
     @Param('doctorId') doctorId: string,

@@ -24,16 +24,70 @@ export class UpdateDepartmentDto {
 }
 
 const DEFAULT_DEPARTMENTS = [
-  { name: 'General Medicine', code: 'GEN', icon: '🏥', color: '#3B82F6', sortOrder: 1 },
-  { name: 'Cardiology', code: 'CARD', icon: '❤️', color: '#EF4444', sortOrder: 2 },
-  { name: 'Orthopaedics', code: 'ORTH', icon: '🦴', color: '#F59E0B', sortOrder: 3 },
-  { name: 'Gynaecology', code: 'GYN', icon: '👶', color: '#EC4899', sortOrder: 4 },
-  { name: 'Paediatrics', code: 'PAED', icon: '🧒', color: '#8B5CF6', sortOrder: 5 },
+  {
+    name: 'General Medicine',
+    code: 'GEN',
+    icon: '🏥',
+    color: '#3B82F6',
+    sortOrder: 1,
+  },
+  {
+    name: 'Cardiology',
+    code: 'CARD',
+    icon: '❤️',
+    color: '#EF4444',
+    sortOrder: 2,
+  },
+  {
+    name: 'Orthopaedics',
+    code: 'ORTH',
+    icon: '🦴',
+    color: '#F59E0B',
+    sortOrder: 3,
+  },
+  {
+    name: 'Gynaecology',
+    code: 'GYN',
+    icon: '👶',
+    color: '#EC4899',
+    sortOrder: 4,
+  },
+  {
+    name: 'Paediatrics',
+    code: 'PAED',
+    icon: '🧒',
+    color: '#8B5CF6',
+    sortOrder: 5,
+  },
   { name: 'ENT', code: 'ENT', icon: '👂', color: '#06B6D4', sortOrder: 6 },
-  { name: 'Ophthalmology', code: 'OPH', icon: '👁️', color: '#10B981', sortOrder: 7 },
-  { name: 'Dermatology', code: 'DERM', icon: '🧴', color: '#F97316', sortOrder: 8 },
-  { name: 'Neurology', code: 'NEURO', icon: '🧠', color: '#6366F1', sortOrder: 9 },
-  { name: 'Psychiatry', code: 'PSYCH', icon: '🧘', color: '#84CC16', sortOrder: 10 },
+  {
+    name: 'Ophthalmology',
+    code: 'OPH',
+    icon: '👁️',
+    color: '#10B981',
+    sortOrder: 7,
+  },
+  {
+    name: 'Dermatology',
+    code: 'DERM',
+    icon: '🧴',
+    color: '#F97316',
+    sortOrder: 8,
+  },
+  {
+    name: 'Neurology',
+    code: 'NEURO',
+    icon: '🧠',
+    color: '#6366F1',
+    sortOrder: 9,
+  },
+  {
+    name: 'Psychiatry',
+    code: 'PSYCH',
+    icon: '🧘',
+    color: '#84CC16',
+    sortOrder: 10,
+  },
 ];
 
 @Injectable()
@@ -45,7 +99,9 @@ export class DepartmentsService {
       where: { tenantId, code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(`Department with code '${dto.code}' already exists`);
+      throw new ConflictException(
+        `Department with code '${dto.code}' already exists`,
+      );
     }
 
     return this.db.repo(Department).save(
@@ -86,7 +142,9 @@ export class DepartmentsService {
   }
 
   async update(id: string, tenantId: string, dto: UpdateDepartmentDto) {
-    const dept = await this.db.repo(Department).findOne({ where: { id, tenantId } });
+    const dept = await this.db
+      .repo(Department)
+      .findOne({ where: { id, tenantId } });
     if (!dept) throw new NotFoundException('Department not found');
 
     await this.db.repo(Department).update(id, {
@@ -102,7 +160,9 @@ export class DepartmentsService {
   }
 
   async delete(id: string, tenantId: string) {
-    const dept = await this.db.repo(Department).findOne({ where: { id, tenantId } });
+    const dept = await this.db
+      .repo(Department)
+      .findOne({ where: { id, tenantId } });
     if (!dept) throw new NotFoundException('Department not found');
     await this.db.repo(Department).update(id, { isActive: false });
     return { deleted: true };
@@ -115,7 +175,8 @@ export class DepartmentsService {
       isActive: true,
     }));
 
-    await this.db.repo(Department)
+    await this.db
+      .repo(Department)
       .createQueryBuilder()
       .insert()
       .into(Department)

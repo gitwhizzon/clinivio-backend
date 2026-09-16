@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer, CompressionTypes, logLevel } from 'kafkajs';
 
@@ -11,10 +16,13 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const brokers = this.configService.get<string[]>('kafka.brokers') ?? ['localhost:9092'];
+    const brokers = this.configService.get<string[]>('kafka.brokers') ?? [
+      'localhost:9092',
+    ];
     const sasl = this.configService.get<any>('kafka.sasl');
     const ssl = this.configService.get<boolean>('kafka.ssl') ?? false;
-    const clientId = this.configService.get<string>('kafka.clientId') ?? 'mediflow-api';
+    const clientId =
+      this.configService.get<string>('kafka.clientId') ?? 'mediflow-api';
 
     const kafka = new Kafka({
       clientId,
@@ -34,7 +42,9 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
       this.connected = true;
       this.logger.log('Kafka producer connected');
     } catch (err: any) {
-      this.logger.warn(`Kafka unavailable — events will be skipped: ${err.message}`);
+      this.logger.warn(
+        `Kafka unavailable — events will be skipped: ${err.message}`,
+      );
     }
   }
 
@@ -46,17 +56,23 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
 
   async emit(topic: string, payload: Record<string, unknown>): Promise<void> {
     if (!this.connected) {
-      this.logger.debug(`Kafka not connected — skipping event on topic ${topic}`);
+      this.logger.debug(
+        `Kafka not connected — skipping event on topic ${topic}`,
+      );
       return;
     }
     try {
       await this.producer.send({
         topic,
         compression: CompressionTypes.GZIP,
-        messages: [{ value: JSON.stringify(payload), timestamp: String(Date.now()) }],
+        messages: [
+          { value: JSON.stringify(payload), timestamp: String(Date.now()) },
+        ],
       });
     } catch (err: any) {
-      this.logger.error(`Failed to emit Kafka event on ${topic}: ${err.message}`);
+      this.logger.error(
+        `Failed to emit Kafka event on ${topic}: ${err.message}`,
+      );
     }
   }
 }

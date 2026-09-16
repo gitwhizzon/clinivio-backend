@@ -4,11 +4,11 @@ import {
   BadRequestException,
   ConflictException,
   Optional,
-} from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import { AppointmentsGateway } from "./appointments.gateway";
-import { v4 as uuidv4 } from "uuid";
+} from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { AppointmentsGateway } from './appointments.gateway';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Appointment,
   DoctorSlot,
@@ -23,11 +23,10 @@ import {
   DiscountType,
   PharmacyOrderStatus,
   TenantEntityManager,
-  In,
-} from "@mediflow/database";
-import { KafkaProducerService } from "../kafka/kafka-producer.service";
-import { KAFKA_TOPICS } from "@mediflow/shared";
-import { CreateAppointmentDto } from "./dto/create-appointment.dto";
+} from '@mediflow/database';
+import { KafkaProducerService } from '../kafka/kafka-producer.service';
+import { KAFKA_TOPICS } from '@mediflow/shared';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
 
 // Resolves a cashier-entered discount (percentage or flat) against a known
 // subtotal, clamped to [0, subtotal]. Mirrors invoices.service.ts's
@@ -61,7 +60,7 @@ export class AppointmentsService {
   ): Promise<boolean> {
     const tenant = await this.platformDs.getRepository(Tenant).findOne({
       where: { id: tenantId },
-      select: ["id", "allowConsultationBeforePayment"],
+      select: ['id', 'allowConsultationBeforePayment'],
     });
     return tenant?.allowConsultationBeforePayment ?? false;
   }
@@ -89,12 +88,12 @@ export class AppointmentsService {
         const slot = await slotRepo.findOne({
           where: { id: dto.slotId, tenantId },
         });
-        if (!slot) throw new NotFoundException("Slot not found");
-        if (slot.isBlocked) throw new BadRequestException("Slot is blocked");
+        if (!slot) throw new NotFoundException('Slot not found');
+        if (slot.isBlocked) throw new BadRequestException('Slot is blocked');
         if (slot.bookedCount >= slot.maxPatients) {
-          throw new ConflictException("Slot is fully booked");
+          throw new ConflictException('Slot is fully booked');
         }
-        await slotRepo.increment({ id: slot.id }, "bookedCount", 1);
+        await slotRepo.increment({ id: slot.id }, 'bookedCount', 1);
         tokenNumber = slot.bookedCount + 1;
         scheduledAt = new Date(`${slot.slotDate}T${slot.startTime}`);
       }
@@ -124,7 +123,7 @@ export class AppointmentsService {
 
       await this.kafka.emit(KAFKA_TOPICS.APPOINTMENT_BOOKED, {
         eventId: uuidv4(),
-        eventType: "appointment.booked",
+        eventType: 'appointment.booked',
         tenantId,
         timestamp: new Date().toISOString(),
         data: {
@@ -142,7 +141,7 @@ export class AppointmentsService {
 
       return apptRepo.findOne({
         where: { id: appointment.id },
-        relations: ["patient", "doctor", "slot", "department"],
+        relations: ['patient', 'doctor', 'slot', 'department'],
       });
     });
   }
@@ -163,10 +162,10 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     if (appointment.status === AppointmentStatus.CANCELLED) {
       throw new BadRequestException(
-        "Cannot confirm payment for cancelled appointment",
+        'Cannot confirm payment for cancelled appointment',
       );
     }
 
@@ -197,7 +196,7 @@ export class AppointmentsService {
         const lineItems =
           options?.lineItems && options.lineItems.length > 0
             ? options.lineItems
-            : [{ description: "Consultation Fee", amount }];
+            : [{ description: 'Consultation Fee', amount }];
         const subtotal = lineItems.reduce((sum, li) => sum + li.amount, 0);
         const discountAmount = resolveFlatDiscount(
           subtotal,
@@ -209,7 +208,7 @@ export class AppointmentsService {
           Math.round((subtotal - discountAmount) * 100) / 100,
         );
         const invoiceCount = await invoiceRepo.count({ where: { tenantId } });
-        const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, "0")}`;
+        const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, '0')}`;
         invoice = await invoiceRepo.save(
           invoiceRepo.create({
             tenantId,
@@ -226,11 +225,11 @@ export class AppointmentsService {
                 ? String(options.discountValue)
                 : null,
             taxableAmount: String(totalAmount),
-            cgstAmount: "0",
-            sgstAmount: "0",
-            igstAmount: "0",
+            cgstAmount: '0',
+            sgstAmount: '0',
+            igstAmount: '0',
             totalAmount: String(totalAmount),
-            amountPaid: "0",
+            amountPaid: '0',
             balanceDue: String(totalAmount),
             paymentStatus: PaymentStatus.PENDING,
           }),
@@ -238,7 +237,7 @@ export class AppointmentsService {
       }
 
       if (invoice.paymentStatus === PaymentStatus.PAID) {
-        throw new BadRequestException("Invoice already paid");
+        throw new BadRequestException('Invoice already paid');
       }
 
       const balanceDue =
@@ -247,16 +246,16 @@ export class AppointmentsService {
         parseFloat(invoice.balanceDue) > 0
           ? parseFloat(invoice.balanceDue)
           : parseFloat(invoice.totalAmount) -
-            parseFloat(invoice.amountPaid ?? "0");
+            parseFloat(invoice.amountPaid ?? '0');
       const requested =
         amount !== undefined && amount !== null ? amount : balanceDue;
       if (requested <= 0)
         throw new BadRequestException(
-          "Payment amount must be greater than zero",
+          'Payment amount must be greater than zero',
         );
       const collected = Math.min(requested, balanceDue);
       const newAmountPaid =
-        Math.round((parseFloat(invoice.amountPaid ?? "0") + collected) * 100) /
+        Math.round((parseFloat(invoice.amountPaid ?? '0') + collected) * 100) /
         100;
       const newBalanceDue = Math.max(
         0,
@@ -295,7 +294,7 @@ export class AppointmentsService {
 
       return em.getRepository(Appointment).findOne({
         where: { id },
-        relations: ["patient", "doctor", "slot", "department"],
+        relations: ['patient', 'doctor', 'slot', 'department'],
       });
     });
   }
@@ -316,31 +315,31 @@ export class AppointmentsService {
     endOfDay.setHours(23, 59, 59, 999);
 
     const qb = this.db
-      .qb(Appointment, "appt")
-      .leftJoinAndSelect("appt.patient", "patient")
-      .leftJoinAndSelect("appt.doctor", "doctor")
-      .leftJoinAndSelect("appt.slot", "slot")
-      .leftJoinAndSelect("appt.department", "department")
-      .where("appt.tenantId = :tenantId", { tenantId });
+      .qb(Appointment, 'appt')
+      .leftJoinAndSelect('appt.patient', 'patient')
+      .leftJoinAndSelect('appt.doctor', 'doctor')
+      .leftJoinAndSelect('appt.slot', 'slot')
+      .leftJoinAndSelect('appt.department', 'department')
+      .where('appt.tenantId = :tenantId', { tenantId });
 
     if (filters.doctorId)
-      qb.andWhere("appt.doctorId = :doctorId", { doctorId: filters.doctorId });
+      qb.andWhere('appt.doctorId = :doctorId', { doctorId: filters.doctorId });
     if (filters.departmentId)
-      qb.andWhere("appt.departmentId = :departmentId", {
+      qb.andWhere('appt.departmentId = :departmentId', {
         departmentId: filters.departmentId,
       });
 
     // When paymentStatus filter is supplied (e.g. billing counter querying PENDING),
     // return only today's appointments matching that payment status.
     if (filters.paymentStatus) {
-      qb.andWhere("appt.paymentStatus = :paymentStatus", {
+      qb.andWhere('appt.paymentStatus = :paymentStatus', {
         paymentStatus: filters.paymentStatus,
       })
-        .andWhere("appt.createdAt BETWEEN :startOfDay AND :endOfDay", {
+        .andWhere('appt.createdAt BETWEEN :startOfDay AND :endOfDay', {
           startOfDay,
           endOfDay,
         })
-        .andWhere("appt.status NOT IN (:...excluded)", {
+        .andWhere('appt.status NOT IN (:...excluded)', {
           excluded: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW],
         });
     } else {
@@ -364,8 +363,8 @@ export class AppointmentsService {
     }
 
     return qb
-      .orderBy("appt.tokenNumber", "ASC")
-      .addOrderBy("appt.createdAt", "ASC")
+      .orderBy('appt.tokenNumber', 'ASC')
+      .addOrderBy('appt.createdAt', 'ASC')
       .getMany();
   }
 
@@ -385,31 +384,31 @@ export class AppointmentsService {
     const skip = (page - 1) * limit;
 
     const qb = this.db
-      .qb(Appointment, "appt")
-      .leftJoinAndSelect("appt.patient", "patient")
-      .leftJoinAndSelect("appt.doctor", "doctor")
-      .leftJoinAndSelect("appt.slot", "slot")
-      .leftJoinAndSelect("appt.department", "department")
-      .where("appt.tenantId = :tenantId", { tenantId });
+      .qb(Appointment, 'appt')
+      .leftJoinAndSelect('appt.patient', 'patient')
+      .leftJoinAndSelect('appt.doctor', 'doctor')
+      .leftJoinAndSelect('appt.slot', 'slot')
+      .leftJoinAndSelect('appt.department', 'department')
+      .where('appt.tenantId = :tenantId', { tenantId });
 
     if (filters.doctorId)
-      qb.andWhere("appt.doctorId = :doctorId", { doctorId: filters.doctorId });
+      qb.andWhere('appt.doctorId = :doctorId', { doctorId: filters.doctorId });
     if (filters.departmentId)
-      qb.andWhere("appt.departmentId = :departmentId", {
+      qb.andWhere('appt.departmentId = :departmentId', {
         departmentId: filters.departmentId,
       });
     if (filters.patientId)
-      qb.andWhere("appt.patientId = :patientId", {
+      qb.andWhere('appt.patientId = :patientId', {
         patientId: filters.patientId,
       });
     if (filters.status)
-      qb.andWhere("appt.status = :status", { status: filters.status });
+      qb.andWhere('appt.status = :status', { status: filters.status });
     if (filters.from)
-      qb.andWhere("appt.createdAt >= :from", { from: new Date(filters.from) });
+      qb.andWhere('appt.createdAt >= :from', { from: new Date(filters.from) });
     if (filters.to)
-      qb.andWhere("appt.createdAt <= :to", { to: new Date(filters.to) });
+      qb.andWhere('appt.createdAt <= :to', { to: new Date(filters.to) });
 
-    qb.orderBy("appt.createdAt", "DESC").skip(skip).take(limit);
+    qb.orderBy('appt.createdAt', 'DESC').skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
     return {
@@ -422,18 +421,18 @@ export class AppointmentsService {
     const appointment = await this.db.repo(Appointment).findOne({
       where: { id, tenantId },
       relations: [
-        "patient",
-        "doctor",
-        "slot",
-        "department",
-        "consultation",
-        "consultation.prescriptions",
-        "consultation.prescriptions.items",
-        "consultation.followUps",
-        "pharmacyOrder",
+        'patient',
+        'doctor',
+        'slot',
+        'department',
+        'consultation',
+        'consultation.prescriptions',
+        'consultation.prescriptions.items',
+        'consultation.followUps',
+        'pharmacyOrder',
       ],
     });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     return appointment;
   }
 
@@ -454,18 +453,18 @@ export class AppointmentsService {
     endOfDay.setHours(23, 59, 59, 999);
 
     const qb = this.db
-      .qb(Appointment, "appt")
-      .leftJoinAndSelect("appt.patient", "patient")
-      .leftJoinAndSelect("appt.slot", "slot")
-      .leftJoinAndSelect("appt.doctor", "doctor")
-      .where("appt.tenantId = :tenantId", { tenantId })
-      .orderBy("appt.tokenNumber", "ASC")
-      .addOrderBy("appt.createdAt", "ASC");
+      .qb(Appointment, 'appt')
+      .leftJoinAndSelect('appt.patient', 'patient')
+      .leftJoinAndSelect('appt.slot', 'slot')
+      .leftJoinAndSelect('appt.doctor', 'doctor')
+      .where('appt.tenantId = :tenantId', { tenantId })
+      .orderBy('appt.tokenNumber', 'ASC')
+      .addOrderBy('appt.createdAt', 'ASC');
 
     if (statuses) {
       // Nurse mode: all active statuses today (use createdAt — walk-ins have no scheduledAt)
-      qb.andWhere("appt.status IN (:...statuses)", { statuses }).andWhere(
-        "appt.createdAt BETWEEN :startOfDay AND :endOfDay",
+      qb.andWhere('appt.status IN (:...statuses)', { statuses }).andWhere(
+        'appt.createdAt BETWEEN :startOfDay AND :endOfDay',
         { startOfDay, endOfDay },
       );
     } else {
@@ -474,16 +473,16 @@ export class AppointmentsService {
         AppointmentStatus.CANCELLED,
         AppointmentStatus.NO_SHOW,
       ];
-      qb.andWhere("appt.status NOT IN (:...excludedStatuses)", {
+      qb.andWhere('appt.status NOT IN (:...excludedStatuses)', {
         excludedStatuses,
-      }).andWhere("appt.createdAt BETWEEN :startOfDay AND :endOfDay", {
+      }).andWhere('appt.createdAt BETWEEN :startOfDay AND :endOfDay', {
         startOfDay,
         endOfDay,
       });
     }
 
     if (doctorId) {
-      qb.andWhere("appt.doctorId = :doctorId", { doctorId });
+      qb.andWhere('appt.doctorId = :doctorId', { doctorId });
     }
 
     return qb.getMany();
@@ -493,7 +492,7 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
 
     const canCheckInUnpaid =
       appointment.status === AppointmentStatus.REGISTERED &&
@@ -504,7 +503,7 @@ export class AppointmentsService {
       !canCheckInUnpaid
     ) {
       throw new BadRequestException(
-        "Appointment must be CONFIRMED to check in",
+        'Appointment must be CONFIRMED to check in',
       );
     }
     await this.db.repo(Appointment).update(id, {
@@ -519,7 +518,7 @@ export class AppointmentsService {
     );
     return this.db.repo(Appointment).findOne({
       where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      relations: ['patient', 'doctor', 'slot', 'department'],
     });
   }
 
@@ -528,10 +527,10 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     if (appointment.status !== AppointmentStatus.CHECKED_IN) {
       throw new BadRequestException(
-        "Only CHECKED_IN appointments can be reversed",
+        'Only CHECKED_IN appointments can be reversed',
       );
     }
     // Revert to wherever it came from: unpaid check-ins (allowed only for
@@ -547,7 +546,7 @@ export class AppointmentsService {
     this.emit(tenantId, id, revertStatus, appointment.tokenNumber);
     return this.db.repo(Appointment).findOne({
       where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      relations: ['patient', 'doctor', 'slot', 'department'],
     });
   }
 
@@ -555,10 +554,10 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     if (appointment.status !== AppointmentStatus.CHECKED_IN) {
       throw new BadRequestException(
-        "Appointment must be CHECKED_IN to start consultation",
+        'Appointment must be CHECKED_IN to start consultation',
       );
     }
     await this.db
@@ -572,7 +571,7 @@ export class AppointmentsService {
     );
     return this.db.repo(Appointment).findOne({
       where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      relations: ['patient', 'doctor', 'slot', 'department'],
     });
   }
 
@@ -580,10 +579,10 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     if (appointment.status !== AppointmentStatus.IN_PROGRESS) {
       throw new BadRequestException(
-        "Appointment must be IN_PROGRESS to complete",
+        'Appointment must be IN_PROGRESS to complete',
       );
     }
     await this.db.repo(Appointment).update(id, {
@@ -599,7 +598,7 @@ export class AppointmentsService {
 
     await this.kafka.emit(KAFKA_TOPICS.APPOINTMENT_COMPLETED, {
       eventId: uuidv4(),
-      eventType: "appointment.completed",
+      eventType: 'appointment.completed',
       tenantId,
       timestamp: new Date().toISOString(),
       data: {
@@ -613,7 +612,7 @@ export class AppointmentsService {
 
     return this.db.repo(Appointment).findOne({
       where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      relations: ['patient', 'doctor', 'slot', 'department'],
     });
   }
 
@@ -623,17 +622,17 @@ export class AppointmentsService {
       const pharmacyRepo = em.getRepository(PharmacyOrder);
 
       const appointment = await apptRepo.findOne({ where: { id, tenantId } });
-      if (!appointment) throw new NotFoundException("Appointment not found");
+      if (!appointment) throw new NotFoundException('Appointment not found');
       if (appointment.status !== AppointmentStatus.COMPLETED) {
         throw new BadRequestException(
-          "Appointment must be COMPLETED before sending to pharmacy",
+          'Appointment must be COMPLETED before sending to pharmacy',
         );
       }
 
       const existing = await pharmacyRepo.findOne({
         where: { appointmentId: id },
       });
-      if (existing) throw new ConflictException("Already sent to pharmacy");
+      if (existing) throw new ConflictException('Already sent to pharmacy');
 
       await pharmacyRepo.save(
         pharmacyRepo.create({
@@ -657,7 +656,7 @@ export class AppointmentsService {
 
       return apptRepo.findOne({
         where: { id },
-        relations: ["patient", "doctor", "slot", "department", "pharmacyOrder"],
+        relations: ['patient', 'doctor', 'slot', 'department', 'pharmacyOrder'],
       });
     });
   }
@@ -671,12 +670,12 @@ export class AppointmentsService {
     const appointment = await this.db
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
-    if (!appointment) throw new NotFoundException("Appointment not found");
+    if (!appointment) throw new NotFoundException('Appointment not found');
     if (
       appointment.status === AppointmentStatus.CANCELLED ||
       appointment.status === AppointmentStatus.NO_SHOW
     ) {
-      throw new BadRequestException("Appointment is already dismissed");
+      throw new BadRequestException('Appointment is already dismissed');
     }
 
     const finalStatus = [
@@ -696,12 +695,12 @@ export class AppointmentsService {
     if (appointment.slotId) {
       await this.db
         .repo(DoctorSlot)
-        .decrement({ id: appointment.slotId }, "bookedCount", 1);
+        .decrement({ id: appointment.slotId }, 'bookedCount', 1);
     }
 
     await this.kafka.emit(KAFKA_TOPICS.APPOINTMENT_CANCELLED, {
       eventId: uuidv4(),
-      eventType: "appointment.cancelled",
+      eventType: 'appointment.cancelled',
       tenantId,
       timestamp: new Date().toISOString(),
       data: {
@@ -716,7 +715,7 @@ export class AppointmentsService {
 
     return this.db.repo(Appointment).findOne({
       where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      relations: ['patient', 'doctor', 'slot', 'department'],
     });
   }
 
@@ -733,25 +732,25 @@ export class AppointmentsService {
     // Helper: base query scoped to tenant + optional doctor
     const base = () => {
       const qb = this.db
-        .qb(Appointment, "appt")
-        .where("appt.tenantId = :tenantId", { tenantId });
-      if (doctorId) qb.andWhere("appt.doctorId = :doctorId", { doctorId });
+        .qb(Appointment, 'appt')
+        .where('appt.tenantId = :tenantId', { tenantId });
+      if (doctorId) qb.andWhere('appt.doctorId = :doctorId', { doctorId });
       return qb;
     };
 
     const [inProgress, waiting, completedToday] = await Promise.all([
       base()
-        .leftJoinAndSelect("appt.patient", "patient")
-        .andWhere("appt.status = :s", { s: AppointmentStatus.IN_PROGRESS })
+        .leftJoinAndSelect('appt.patient', 'patient')
+        .andWhere('appt.status = :s', { s: AppointmentStatus.IN_PROGRESS })
         .getOne(),
       base()
-        .andWhere("appt.status IN (:...s)", {
+        .andWhere('appt.status IN (:...s)', {
           s: [AppointmentStatus.CONFIRMED, AppointmentStatus.CHECKED_IN],
         })
         .getCount(),
       base()
-        .andWhere("appt.status = :s", { s: AppointmentStatus.COMPLETED })
-        .andWhere("appt.completedAt BETWEEN :startOfDay AND :endOfDay", {
+        .andWhere('appt.status = :s', { s: AppointmentStatus.COMPLETED })
+        .andWhere('appt.completedAt BETWEEN :startOfDay AND :endOfDay', {
           startOfDay,
           endOfDay,
         })
@@ -762,7 +761,7 @@ export class AppointmentsService {
       currentPatient: inProgress,
       waitingCount: waiting,
       completedCount: completedToday,
-      doctorId: doctorId ?? "all",
+      doctorId: doctorId ?? 'all',
     };
   }
 }

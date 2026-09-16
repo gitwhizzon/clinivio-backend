@@ -4,20 +4,20 @@ import {
   ConflictException,
   ForbiddenException,
   Logger,
-} from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
-import * as bcrypt from "bcrypt";
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import {
   Tenant,
   User,
   Role,
   TenantDataSourceRegistry,
   ALL_ENTITIES,
-} from "@mediflow/database";
-import { CreateTenantDto } from "./dto/create-tenant.dto";
-import { UpdateTenantDto } from "./dto/update-tenant.dto";
+} from '@mediflow/database';
+import { CreateTenantDto } from './dto/create-tenant.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 
 @Injectable()
 export class TenantsService {
@@ -32,12 +32,12 @@ export class TenantsService {
   // ── Queries ────────────────────────────────────────────────────────────────
 
   findAll() {
-    return this.tenantRepo.find({ order: { createdAt: "DESC" } });
+    return this.tenantRepo.find({ order: { createdAt: 'DESC' } });
   }
 
   async findAllWithStats() {
     const tenants = await this.tenantRepo.find({
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
     });
     return Promise.all(
       tenants.map(async (t) => {
@@ -58,7 +58,7 @@ export class TenantsService {
               .count({ where: { tenantId: t.id, isActive: true } }),
             this.platformDs.getRepository(User).findOne({
               where: { tenantId: t.id, role: Role.ADMIN },
-              select: ["email", "firstName", "lastName", "lastLoginAt"],
+              select: ['email', 'firstName', 'lastName', 'lastLoginAt'],
             }),
           ]);
           return {
@@ -85,7 +85,7 @@ export class TenantsService {
 
   async findById(id: string) {
     const tenant = await this.tenantRepo.findOne({ where: { id } });
-    if (!tenant) throw new NotFoundException("Tenant not found");
+    if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
   }
 
@@ -116,7 +116,7 @@ export class TenantsService {
         drugLicenseNo: dto.drugLicenseNo,
         whatsappPhoneNumberId: dto.whatsappPhoneNumberId,
         wabaId: dto.wabaId,
-        subscriptionTier: (dto.subscriptionTier as any) ?? "BASIC",
+        subscriptionTier: (dto.subscriptionTier as any) ?? 'BASIC',
         phone: dto.phone,
         email: dto.email,
         website: dto.website,
@@ -226,7 +226,7 @@ export class TenantsService {
     if (hasAdminUpdate) {
       if (!tenant.slug) {
         throw new ConflictException(
-          "Cannot update admin user for the platform tenant via this endpoint",
+          'Cannot update admin user for the platform tenant via this endpoint',
         );
       }
       const tenantDs = await this.registry.getOrCreate(id, tenant.slug);
@@ -237,7 +237,7 @@ export class TenantsService {
       });
       if (!admin) {
         throw new NotFoundException(
-          "No active ADMIN user found for this tenant",
+          'No active ADMIN user found for this tenant',
         );
       }
 
@@ -257,7 +257,7 @@ export class TenantsService {
   }
 
   async deactivate(id: string) {
-    const tenant = await this.findById(id);
+    await this.findById(id); // throws NotFoundException if tenant doesn't exist
     await this.tenantRepo.update(id, { isActive: false });
     // Evict the cached DataSource so it closes connections
     await this.registry.evict(id);
@@ -273,7 +273,7 @@ export class TenantsService {
     const tenant = await this.findById(id);
 
     if (!tenant.slug) {
-      throw new ForbiddenException("The platform tenant cannot be deleted");
+      throw new ForbiddenException('The platform tenant cannot be deleted');
     }
 
     await this.registry.evict(id);
@@ -300,10 +300,10 @@ export class TenantsService {
 
     const admin = await tenantDs.getRepository(User).findOne({
       where: { tenantId: tenant.id, role: Role.ADMIN, isActive: true },
-      select: ["id", "email", "firstName", "lastName"],
+      select: ['id', 'email', 'firstName', 'lastName'],
     });
     if (!admin)
-      throw new NotFoundException("Admin user not found for this tenant");
+      throw new NotFoundException('Admin user not found for this tenant');
 
     const newPassword = this.generateSecurePassword();
     const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -327,16 +327,16 @@ export class TenantsService {
   private generateSlug(name: string): string {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
       .slice(0, 63);
   }
 
   private generateSecurePassword(): string {
-    const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-    const lower = "abcdefghjkmnpqrstuvwxyz";
-    const digits = "23456789";
-    const special = "@#$!";
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghjkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const special = '@#$!';
     let pwd =
       upper[Math.floor(Math.random() * upper.length)] +
       lower[Math.floor(Math.random() * lower.length)] +
@@ -346,8 +346,8 @@ export class TenantsService {
     for (let i = 0; i < 6; i++)
       pwd += all[Math.floor(Math.random() * all.length)];
     return pwd
-      .split("")
+      .split('')
       .sort(() => Math.random() - 0.5)
-      .join("");
+      .join('');
   }
 }

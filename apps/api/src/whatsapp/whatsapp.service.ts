@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { NotificationLog, NotificationStatus, TenantDataSourceRegistry } from '@mediflow/database';
+import {
+  NotificationLog,
+  NotificationStatus,
+  TenantDataSourceRegistry,
+} from '@mediflow/database';
 import axios from 'axios';
 
 @Injectable()
@@ -169,14 +173,18 @@ export class WhatsappService {
         const ts = new Date(parseInt(timestamp, 10) * 1000);
 
         if (newStatus === NotificationStatus.SENT) updateData.sentAt = ts;
-        else if (newStatus === NotificationStatus.DELIVERED) updateData.deliveredAt = ts;
+        else if (newStatus === NotificationStatus.DELIVERED)
+          updateData.deliveredAt = ts;
         else if (newStatus === NotificationStatus.READ) updateData.readAt = ts;
         else if (newStatus === NotificationStatus.FAILED) {
-          updateData.failureReason = status.errors?.[0]?.message ?? 'Unknown error';
+          updateData.failureReason =
+            status.errors?.[0]?.message ?? 'Unknown error';
         }
 
         await ds.getRepository(NotificationLog).update(log.id, updateData);
-        this.logger.debug(`Updated notification log ${log.id} to status ${newStatus}`);
+        this.logger.debug(
+          `Updated notification log ${log.id} to status ${newStatus}`,
+        );
         break;
       }
 
@@ -184,11 +192,16 @@ export class WhatsappService {
         this.logger.debug(`No notification log found for wamid: ${wamid}`);
       }
     } catch (err: any) {
-      this.logger.error(`Failed to process status update for wamid ${wamid}: ${err.message}`);
+      this.logger.error(
+        `Failed to process status update for wamid ${wamid}: ${err.message}`,
+      );
     }
   }
 
-  private async processInboundMessage(message: any, contact: any): Promise<void> {
+  private async processInboundMessage(
+    message: any,
+    contact: any,
+  ): Promise<void> {
     // Enqueue inbound message processing
     try {
       await this.notificationsQueue.add(

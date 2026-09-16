@@ -3,11 +3,11 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from "@nestjs/common";
-import { Observable } from "rxjs";
-import { tap, catchError } from "rxjs/operators";
-import { throwError } from "rxjs";
-import { AuditService } from "./audit.service";
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
+import { AuditService } from './audit.service';
 
 // ── URL pattern table ──────────────────────────────────────────────────────────
 // Ordered: most-specific first. First match wins.
@@ -16,154 +16,154 @@ const ROUTES: { pattern: RegExp; action: string; entityType: string }[] = [
   // Appointments — action routes
   {
     pattern: /\/appointments\/[^/]+\/confirm-payment$/,
-    action: "PAYMENT",
-    entityType: "Appointment",
+    action: 'PAYMENT',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/check-in$/,
-    action: "CHECK_IN",
-    entityType: "Appointment",
+    action: 'CHECK_IN',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/undo-check-in$/,
-    action: "UNDO_CHECK_IN",
-    entityType: "Appointment",
+    action: 'UNDO_CHECK_IN',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/start$/,
-    action: "START_CONSULTATION",
-    entityType: "Appointment",
+    action: 'START_CONSULTATION',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/complete$/,
-    action: "COMPLETE",
-    entityType: "Appointment",
+    action: 'COMPLETE',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/send-to-pharmacy$/,
-    action: "SEND_TO_PHARMACY",
-    entityType: "Appointment",
+    action: 'SEND_TO_PHARMACY',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/cancel$/,
-    action: "CANCEL",
-    entityType: "Appointment",
+    action: 'CANCEL',
+    entityType: 'Appointment',
   },
   {
     pattern: /\/appointments\/[^/]+\/consultation\/prescription$/,
-    action: "CREATE",
-    entityType: "Prescription",
+    action: 'CREATE',
+    entityType: 'Prescription',
   },
   {
     pattern: /\/appointments\/[^/]+\/consultation\/follow-up$/,
-    action: "CREATE",
-    entityType: "FollowUp",
+    action: 'CREATE',
+    entityType: 'FollowUp',
   },
   {
     pattern: /\/appointments\/[^/]+\/consultation$/,
-    action: "SAVE",
-    entityType: "Consultation",
+    action: 'SAVE',
+    entityType: 'Consultation',
   },
   // Appointments — CRUD
   {
     pattern: /\/appointments\/[^/]+$/,
-    action: "UPDATE",
-    entityType: "Appointment",
+    action: 'UPDATE',
+    entityType: 'Appointment',
   },
-  { pattern: /\/appointments$/, action: "CREATE", entityType: "Appointment" },
+  { pattern: /\/appointments$/, action: 'CREATE', entityType: 'Appointment' },
   // Lab
   {
     pattern: /\/lab\/orders\/[^/]+\/status$/,
-    action: "STATUS_CHANGE",
-    entityType: "LabOrder",
+    action: 'STATUS_CHANGE',
+    entityType: 'LabOrder',
   },
   {
     pattern: /\/lab\/orders\/[^/]+$/,
-    action: "UPDATE",
-    entityType: "LabOrder",
+    action: 'UPDATE',
+    entityType: 'LabOrder',
   },
-  { pattern: /\/lab\/orders$/, action: "CREATE", entityType: "LabOrder" },
+  { pattern: /\/lab\/orders$/, action: 'CREATE', entityType: 'LabOrder' },
   // Invoices
   {
     pattern: /\/invoices\/[^/]+\/confirm-payment$/,
-    action: "PAYMENT",
-    entityType: "Invoice",
+    action: 'PAYMENT',
+    entityType: 'Invoice',
   },
-  { pattern: /\/invoices\/[^/]+$/, action: "UPDATE", entityType: "Invoice" },
-  { pattern: /\/invoices$/, action: "CREATE", entityType: "Invoice" },
+  { pattern: /\/invoices\/[^/]+$/, action: 'UPDATE', entityType: 'Invoice' },
+  { pattern: /\/invoices$/, action: 'CREATE', entityType: 'Invoice' },
   // IPD
   {
     pattern: /\/ipd\/admissions\/[^/]+\/discharge$/,
-    action: "DISCHARGE",
-    entityType: "IpdAdmission",
+    action: 'DISCHARGE',
+    entityType: 'IpdAdmission',
   },
   {
     pattern: /\/ipd\/admissions\/[^/]+\/ready-for-discharge$/,
-    action: "STATUS_CHANGE",
-    entityType: "IpdAdmission",
+    action: 'STATUS_CHANGE',
+    entityType: 'IpdAdmission',
   },
   {
     pattern: /\/ipd\/admissions\/[^/]+$/,
-    action: "UPDATE",
-    entityType: "IpdAdmission",
+    action: 'UPDATE',
+    entityType: 'IpdAdmission',
   },
   {
     pattern: /\/ipd\/admissions$/,
-    action: "CREATE",
-    entityType: "IpdAdmission",
+    action: 'CREATE',
+    entityType: 'IpdAdmission',
   },
   // Pharmacy
   {
     pattern: /\/pharmacy\/orders\/[^/]+\/dispense$/,
-    action: "DISPENSE",
-    entityType: "PharmacyOrder",
+    action: 'DISPENSE',
+    entityType: 'PharmacyOrder',
   },
   {
     pattern: /\/pharmacy\/orders\/[^/]+$/,
-    action: "UPDATE",
-    entityType: "PharmacyOrder",
+    action: 'UPDATE',
+    entityType: 'PharmacyOrder',
   },
   // Patients
-  { pattern: /\/patients\/[^/]+$/, action: "UPDATE", entityType: "Patient" },
-  { pattern: /\/patients$/, action: "CREATE", entityType: "Patient" },
+  { pattern: /\/patients\/[^/]+$/, action: 'UPDATE', entityType: 'Patient' },
+  { pattern: /\/patients$/, action: 'CREATE', entityType: 'Patient' },
   // Users / staff
   {
     pattern: /\/users\/[^/]+\/password$/,
-    action: "CHANGE_PASSWORD",
-    entityType: "User",
+    action: 'CHANGE_PASSWORD',
+    entityType: 'User',
   },
-  { pattern: /\/users\/[^/]+$/, action: "UPDATE", entityType: "User" },
-  { pattern: /\/users$/, action: "CREATE", entityType: "User" },
+  { pattern: /\/users\/[^/]+$/, action: 'UPDATE', entityType: 'User' },
+  { pattern: /\/users$/, action: 'CREATE', entityType: 'User' },
   // Slots
-  { pattern: /\/slots\/[^/]+$/, action: "UPDATE", entityType: "DoctorSlot" },
-  { pattern: /\/slots$/, action: "CREATE", entityType: "DoctorSlot" },
+  { pattern: /\/slots\/[^/]+$/, action: 'UPDATE', entityType: 'DoctorSlot' },
+  { pattern: /\/slots$/, action: 'CREATE', entityType: 'DoctorSlot' },
   // Departments
   {
     pattern: /\/departments\/[^/]+$/,
-    action: "UPDATE",
-    entityType: "Department",
+    action: 'UPDATE',
+    entityType: 'Department',
   },
-  { pattern: /\/departments$/, action: "CREATE", entityType: "Department" },
+  { pattern: /\/departments$/, action: 'CREATE', entityType: 'Department' },
   // Tenant profile
-  { pattern: /\/tenants\/[^/]+$/, action: "UPDATE", entityType: "Tenant" },
+  { pattern: /\/tenants\/[^/]+$/, action: 'UPDATE', entityType: 'Tenant' },
 ];
 
 const SENSITIVE = new Set([
-  "password",
-  "passwordHash",
-  "token",
-  "refreshToken",
-  "secret",
-  "razorpayPaymentId",
+  'password',
+  'passwordHash',
+  'token',
+  'refreshToken',
+  'secret',
+  'razorpayPaymentId',
 ]);
 
 function sanitize(obj: unknown): unknown {
-  if (!obj || typeof obj !== "object") return obj;
+  if (!obj || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(sanitize);
   return Object.fromEntries(
     Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
       k,
-      SENSITIVE.has(k) ? "[REDACTED]" : sanitize(v),
+      SENSITIVE.has(k) ? '[REDACTED]' : sanitize(v),
     ]),
   );
 }
@@ -172,15 +172,15 @@ function resolveRoute(
   method: string,
   url: string,
 ): { action: string; entityType: string } | null {
-  const path = url.split("?")[0];
+  const path = url.split('?')[0];
   for (const r of ROUTES) {
     if (r.pattern.test(path)) {
-      const action = method === "DELETE" ? "DELETE" : r.action;
+      const action = method === 'DELETE' ? 'DELETE' : r.action;
       return { action, entityType: r.entityType };
     }
   }
   // Catch-all for unmatched DELETE
-  if (method === "DELETE") return { action: "DELETE", entityType: "Unknown" };
+  if (method === 'DELETE') return { action: 'DELETE', entityType: 'Unknown' };
   return null;
 }
 
@@ -188,8 +188,8 @@ function extractId(url: string, response: unknown): string | undefined {
   // Prefer the entity ID in the response body
   if (
     response &&
-    typeof response === "object" &&
-    "id" in (response as object)
+    typeof response === 'object' &&
+    'id' in (response as object)
   ) {
     return (response as Record<string, unknown>).id as string;
   }
@@ -206,35 +206,35 @@ function buildDescription(
   body: Record<string, unknown>,
 ): string {
   switch (action) {
-    case "PAYMENT":
-      return `${entityType} payment ₹${body?.amount ?? "?"} via ${body?.paymentMethod ?? "unknown"}`;
-    case "CANCEL":
-      return `${entityType} ${(body?.cancelStatus as string) ?? "CANCELLED"}: ${body?.reason ?? "—"}`;
-    case "CHECK_IN":
-      return "Patient checked in";
-    case "UNDO_CHECK_IN":
-      return "Check-in reversed";
-    case "START_CONSULTATION":
-      return "Consultation started";
-    case "COMPLETE":
-      return "Consultation completed";
-    case "SEND_TO_PHARMACY":
-      return "Sent to pharmacy";
-    case "DISCHARGE":
-      return "Patient discharged from IPD";
-    case "DISPENSE":
-      return "Prescription dispensed";
-    case "CHANGE_PASSWORD":
-      return "Password changed";
-    case "STATUS_CHANGE":
+    case 'PAYMENT':
+      return `${entityType} payment ₹${body?.amount ?? '?'} via ${body?.paymentMethod ?? 'unknown'}`;
+    case 'CANCEL':
+      return `${entityType} ${(body?.cancelStatus as string) ?? 'CANCELLED'}: ${body?.reason ?? '—'}`;
+    case 'CHECK_IN':
+      return 'Patient checked in';
+    case 'UNDO_CHECK_IN':
+      return 'Check-in reversed';
+    case 'START_CONSULTATION':
+      return 'Consultation started';
+    case 'COMPLETE':
+      return 'Consultation completed';
+    case 'SEND_TO_PHARMACY':
+      return 'Sent to pharmacy';
+    case 'DISCHARGE':
+      return 'Patient discharged from IPD';
+    case 'DISPENSE':
+      return 'Prescription dispensed';
+    case 'CHANGE_PASSWORD':
+      return 'Password changed';
+    case 'STATUS_CHANGE':
       return `${entityType} status updated`;
-    case "SAVE":
+    case 'SAVE':
       return `${entityType} notes saved`;
-    case "CREATE":
+    case 'CREATE':
       return `${entityType} created`;
-    case "UPDATE":
+    case 'UPDATE':
       return `${entityType} updated`;
-    case "DELETE":
+    case 'DELETE':
       return `${entityType} deleted`;
     default:
       return `${action} on ${entityType}`;
@@ -260,7 +260,7 @@ export class AuditInterceptor implements NestInterceptor {
     const { method, url, body, user, ip } = req;
 
     // Only audit mutating operations on authenticated requests
-    if (!["POST", "PATCH", "PUT", "DELETE"].includes(method) || !user) {
+    if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) || !user) {
       return next.handle();
     }
 
@@ -271,7 +271,7 @@ export class AuditInterceptor implements NestInterceptor {
     const sanitizedBody = sanitize(body) as Record<string, unknown>;
     const description = buildDescription(action, entityType, sanitizedBody);
     const clientIp =
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? ip;
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? ip;
 
     return next.handle().pipe(
       tap((response: unknown) => {

@@ -2,8 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-} from "@nestjs/common";
-import { BillableService, TenantEntityManager } from "@mediflow/database";
+} from '@nestjs/common';
+import { BillableService, TenantEntityManager } from '@mediflow/database';
 
 export class CreateBillableServiceDto {
   name: string;
@@ -66,11 +66,11 @@ export class BillableServicesService {
 
   async findAll(tenantId: string) {
     return this.db
-      .qb(BillableService, "svc")
-      .where("svc.tenantId = :tenantId", { tenantId })
-      .andWhere("svc.isActive = true")
-      .orderBy("svc.sortOrder", "ASC")
-      .addOrderBy("svc.name", "ASC")
+      .qb(BillableService, 'svc')
+      .where('svc.tenantId = :tenantId', { tenantId })
+      .andWhere('svc.isActive = true')
+      .orderBy('svc.sortOrder', 'ASC')
+      .addOrderBy('svc.name', 'ASC')
       .getMany();
   }
 
@@ -78,7 +78,7 @@ export class BillableServicesService {
     const svc = await this.db
       .repo(BillableService)
       .findOne({ where: { id, tenantId } });
-    if (!svc) throw new NotFoundException("Service not found");
+    if (!svc) throw new NotFoundException('Service not found');
     return svc;
   }
 

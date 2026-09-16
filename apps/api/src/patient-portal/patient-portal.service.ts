@@ -8,15 +8,15 @@ import {
   Logger,
   HttpException,
   HttpStatus,
-} from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import * as bcrypt from "bcrypt";
-import type { Redis } from "ioredis";
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import type { Redis } from 'ioredis';
 
-export const OTP_REDIS_CLIENT = "OTP_REDIS_CLIENT";
+export const OTP_REDIS_CLIENT = 'OTP_REDIS_CLIENT';
 
 const OTP_TTL_SECONDS = 600; // 10 minutes
 const OTP_RATE_WINDOW = 3600; // 1 hour rate window
@@ -37,7 +37,7 @@ import {
   PaymentStatus,
   VisitType,
   TenantDataSourceRegistry,
-} from "@mediflow/database";
+} from '@mediflow/database';
 import {
   PatientRegisterDto,
   PatientLoginDto,
@@ -47,10 +47,10 @@ import {
   VerifyOtpDto,
   CreatePaymentOrderDto,
   VerifyPaymentDto,
-} from "./dto/patient-portal.dto";
-import { RazorpayService } from "../payments/razorpay.service";
-import { InvoicesService } from "../invoices/invoices.service";
-import { PatientJwtPayload } from "./patient-jwt.strategy";
+} from './dto/patient-portal.dto';
+import { RazorpayService } from '../payments/razorpay.service';
+import { InvoicesService } from '../invoices/invoices.service';
+import { PatientJwtPayload } from './patient-jwt.strategy';
 
 @Injectable()
 export class PatientPortalService {
@@ -80,7 +80,7 @@ export class PatientPortalService {
     const tenant = await this.platformDs
       .getRepository(Tenant)
       .findOne({ where: { id: tenantId, isActive: true } });
-    if (!tenant) throw new NotFoundException("Tenant not found");
+    if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
   }
 
@@ -102,7 +102,7 @@ export class PatientPortalService {
       sub: account.id,
       patientId: account.patientId,
       tenantId: account.tenantId,
-      type: "PATIENT",
+      type: 'PATIENT',
     };
     return this.jwtService.sign(payload);
   }
@@ -118,7 +118,7 @@ export class PatientPortalService {
       where: { tenantId: tenant.id, phone: dto.phone },
     });
     if (existing)
-      throw new ConflictException("An account with this phone already exists");
+      throw new ConflictException('An account with this phone already exists');
 
     let patient: Patient;
 
@@ -130,13 +130,13 @@ export class PatientPortalService {
         throw new NotFoundException(`Patient with UHID ${dto.uhid} not found`);
       if (found.phone !== dto.phone) {
         throw new BadRequestException(
-          "Phone number does not match the patient record",
+          'Phone number does not match the patient record',
         );
       }
       patient = found;
     } else {
       const count = await patientRepo.count({ where: { tenantId: tenant.id } });
-      const uhid = `UHID-${String(count + 1).padStart(6, "0")}`;
+      const uhid = `UHID-${String(count + 1).padStart(6, '0')}`;
       patient = await patientRepo.save(
         patientRepo.create({
           tenantId: tenant.id,
@@ -183,12 +183,12 @@ export class PatientPortalService {
 
     const account = await accountRepo.findOne({
       where: { tenantId: tenant.id, phone: dto.phone, isActive: true },
-      relations: ["patient"],
+      relations: ['patient'],
     });
-    if (!account) throw new UnauthorizedException("Invalid phone or password");
+    if (!account) throw new UnauthorizedException('Invalid phone or password');
 
     const match = await bcrypt.compare(dto.password, account.passwordHash);
-    if (!match) throw new UnauthorizedException("Invalid phone or password");
+    if (!match) throw new UnauthorizedException('Invalid phone or password');
 
     await accountRepo.update(account.id, { lastLoginAt: new Date() });
 
@@ -214,7 +214,7 @@ export class PatientPortalService {
     const patient = await ds.getRepository(Patient).findOne({
       where: { id: patientId, isActive: true },
     });
-    if (!patient) throw new NotFoundException("Patient not found");
+    if (!patient) throw new NotFoundException('Patient not found');
     return patient;
   }
 
@@ -256,8 +256,8 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     const [data, total] = await ds.getRepository(Appointment).findAndCount({
       where: { patientId },
-      relations: ["doctor", "doctor.doctorProfile", "department", "slot"],
-      order: { createdAt: "DESC" },
+      relations: ['doctor', 'doctor.doctorProfile', 'department', 'slot'],
+      order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -277,13 +277,13 @@ export class PatientPortalService {
         where: { id: dto.slotId, tenantId, isBlocked: false },
       });
       if (!slot)
-        throw new BadRequestException("Selected slot is not available");
+        throw new BadRequestException('Selected slot is not available');
       if (slot.bookedCount >= slot.maxPatients) {
-        throw new BadRequestException("Slot is fully booked");
+        throw new BadRequestException('Slot is fully booked');
       }
       await ds
         .getRepository(DoctorSlot)
-        .increment({ id: dto.slotId, tenantId }, "bookedCount", 1);
+        .increment({ id: dto.slotId, tenantId }, 'bookedCount', 1);
     }
 
     const count = await apptRepo.count({ where: { tenantId } });
@@ -315,7 +315,7 @@ export class PatientPortalService {
     const appt = await repo.findOne({
       where: { id: appointmentId, patientId },
     });
-    if (!appt) throw new NotFoundException("Appointment not found");
+    if (!appt) throw new NotFoundException('Appointment not found');
     if (
       appt.status === AppointmentStatus.COMPLETED ||
       appt.status === AppointmentStatus.CANCELLED
@@ -328,7 +328,7 @@ export class PatientPortalService {
       status: AppointmentStatus.CANCELLED,
       cancelledAt: new Date(),
     });
-    return { message: "Appointment cancelled" };
+    return { message: 'Appointment cancelled' };
   }
 
   // ── Consultations ─────────────────────────────────────────────────────────────
@@ -343,12 +343,12 @@ export class PatientPortalService {
     const [data, total] = await ds.getRepository(Consultation).findAndCount({
       where: { patientId },
       relations: [
-        "doctor",
-        "prescriptions",
-        "prescriptions.items",
-        "followUps",
+        'doctor',
+        'prescriptions',
+        'prescriptions.items',
+        'followUps',
       ],
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -366,8 +366,8 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     const [data, total] = await ds.getRepository(LabOrder).findAndCount({
       where: { patientId },
-      relations: ["items", "items.labTest", "orderedBy"],
-      order: { createdAt: "DESC" },
+      relations: ['items', 'items.labTest', 'orderedBy'],
+      order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -380,7 +380,7 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     const [data, total] = await ds.getRepository(Invoice).findAndCount({
       where: { patientId },
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -393,7 +393,7 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     return ds.getRepository(DoctorProfile).find({
       where: { tenantId, isAcceptingPatients: true },
-      relations: ["user", "department"],
+      relations: ['user', 'department'],
     });
   }
 
@@ -401,7 +401,7 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     return ds.getRepository(Department).find({
       where: { tenantId, isActive: true },
-      order: { name: "ASC" },
+      order: { name: 'ASC' },
     });
   }
 
@@ -409,7 +409,7 @@ export class PatientPortalService {
     const ds = await this.getDsById(tenantId);
     return ds.getRepository(DoctorSlot).find({
       where: { tenantId, doctorId, slotDate: date, isBlocked: false },
-      order: { startTime: "ASC" },
+      order: { startTime: 'ASC' },
     });
   }
 
@@ -424,7 +424,7 @@ export class PatientPortalService {
     });
     if (!account) {
       // Return generic success — don't reveal whether the phone is registered
-      return { message: "If this number is registered, an OTP has been sent." };
+      return { message: 'If this number is registered, an OTP has been sent.' };
     }
 
     // Rate limiting: max OTP_RATE_LIMIT requests per hour
@@ -435,7 +435,7 @@ export class PatientPortalService {
     }
     if (attempts > OTP_RATE_LIMIT) {
       throw new HttpException(
-        "Too many OTP requests. Please try again in an hour.",
+        'Too many OTP requests. Please try again in an hour.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
@@ -446,14 +446,14 @@ export class PatientPortalService {
     await this.redis.setex(otpKey, OTP_TTL_SECONDS, otp);
 
     // Send SMS via Twilio
-    const sid = this.config.get<string>("twilio.accountSid");
-    const token = this.config.get<string>("twilio.authToken");
-    const from = this.config.get<string>("twilio.fromNumber");
+    const sid = this.config.get<string>('twilio.accountSid');
+    const token = this.config.get<string>('twilio.authToken');
+    const from = this.config.get<string>('twilio.fromNumber');
 
     if (sid && token && from) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const makeClient = require("twilio") as typeof import("twilio");
+        const makeClient = require('twilio') as typeof import('twilio');
         const client = makeClient(sid, token);
         await client.messages.create({
           to: dto.phone,
@@ -461,7 +461,7 @@ export class PatientPortalService {
           body: `Your Clinivio OTP is ${otp}. Valid for 10 minutes. Do not share this with anyone.`,
         });
       } catch (err: any) {
-        this.logger.error("[OTP] Twilio send failed:", err?.message);
+        this.logger.error('[OTP] Twilio send failed:', err?.message);
         // Don't expose Twilio errors to the client
       }
     } else {
@@ -471,7 +471,7 @@ export class PatientPortalService {
       );
     }
 
-    return { message: "If this number is registered, an OTP has been sent." };
+    return { message: 'If this number is registered, an OTP has been sent.' };
   }
 
   // ── Payments ──────────────────────────────────────────────────────────────────
@@ -484,23 +484,23 @@ export class PatientPortalService {
     const invoice = await this.invoices.findById(dto.invoiceId, tenantId);
 
     if (invoice.patientId !== patientId) {
-      throw new BadRequestException("Invoice does not belong to this patient");
+      throw new BadRequestException('Invoice does not belong to this patient');
     }
-    if (invoice.paymentStatus === "PAID") {
-      throw new BadRequestException("Invoice is already paid");
+    if (invoice.paymentStatus === 'PAID') {
+      throw new BadRequestException('Invoice is already paid');
     }
 
     const amountPaise = Math.round(parseFloat(invoice.totalAmount) * 100);
     const order = await this.razorpay.createOrder({
       amount: amountPaise,
-      currency: "INR",
+      currency: 'INR',
       receipt: `inv_${dto.invoiceId.slice(0, 8)}`,
       notes: { invoiceId: dto.invoiceId, tenantId },
     });
 
     if (!order) {
       throw new BadRequestException(
-        "Payment gateway unavailable. Please try again later.",
+        'Payment gateway unavailable. Please try again later.',
       );
     }
 
@@ -508,7 +508,7 @@ export class PatientPortalService {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      keyId: this.config.get<string>("razorpay.keyId"),
+      keyId: this.config.get<string>('razorpay.keyId'),
     };
   }
 
@@ -520,7 +520,7 @@ export class PatientPortalService {
     const invoice = await this.invoices.findById(dto.invoiceId, tenantId);
 
     if (invoice.patientId !== patientId) {
-      throw new BadRequestException("Invoice does not belong to this patient");
+      throw new BadRequestException('Invoice does not belong to this patient');
     }
 
     const valid = this.razorpay.verifySignature(
@@ -531,12 +531,12 @@ export class PatientPortalService {
 
     if (!valid) {
       throw new BadRequestException(
-        "Payment verification failed — invalid signature",
+        'Payment verification failed — invalid signature',
       );
     }
 
     return this.invoices.confirmPayment(dto.invoiceId, tenantId, {
-      paymentMethod: "ONLINE",
+      paymentMethod: 'ONLINE',
       razorpayOrderId: dto.razorpayOrderId,
       razorpayPaymentId: dto.razorpayPaymentId,
     });
@@ -548,7 +548,7 @@ export class PatientPortalService {
 
     const stored = await this.redis.get(otpKey);
     if (!stored || stored !== dto.otp) {
-      throw new UnauthorizedException("Invalid or expired OTP");
+      throw new UnauthorizedException('Invalid or expired OTP');
     }
 
     // Consume the OTP — single use
@@ -556,9 +556,9 @@ export class PatientPortalService {
 
     const account = await ds.getRepository(PatientAccount).findOne({
       where: { tenantId: tenant.id, phone: dto.phone, isActive: true },
-      relations: ["patient"],
+      relations: ['patient'],
     });
-    if (!account) throw new UnauthorizedException("Account not found");
+    if (!account) throw new UnauthorizedException('Account not found');
 
     await ds
       .getRepository(PatientAccount)

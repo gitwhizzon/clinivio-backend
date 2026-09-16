@@ -13,11 +13,16 @@ import { JwtPayload } from '../types/common.types';
 const isProd = process.env.NODE_ENV === 'production';
 
 // Paths that carry PII/PHI — exclude query params from logs in production
-const SENSITIVE_PATHS = ['/auth/', '/patients/', '/consultations/', '/prescriptions/'];
+const SENSITIVE_PATHS = [
+  '/auth/',
+  '/patients/',
+  '/consultations/',
+  '/prescriptions/',
+];
 
 function sanitizeUrl(url: string): string {
   if (!isProd) return url;
-  return SENSITIVE_PATHS.some(p => url.includes(p)) ? url.split('?')[0] : url;
+  return SENSITIVE_PATHS.some((p) => url.includes(p)) ? url.split('?')[0] : url;
 }
 
 @Injectable()
@@ -26,7 +31,9 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const ctx = context.switchToHttp();
-    const request = ctx.getRequest<Request & { user?: JwtPayload; requestId?: string }>();
+    const request = ctx.getRequest<
+      Request & { user?: JwtPayload; requestId?: string }
+    >();
     const response = ctx.getResponse<Response>();
 
     const { method } = request;
@@ -34,13 +41,26 @@ export class LoggingInterceptor implements NestInterceptor {
     const tenantId = request.user?.tenantId ?? 'anon';
     const userId = request.user?.sub ?? 'anon';
     const role = request.user?.role ?? 'anon';
-    const requestId = request.requestId ?? (request.headers['x-request-id'] as string) ?? '-';
+    const requestId =
+      request.requestId ?? (request.headers['x-request-id'] as string) ?? '-';
     const startTime = Date.now();
 
     if (isProd) {
-      this.logger.log(JSON.stringify({ event: 'req', requestId, method, url, tenantId, userId, role }));
+      this.logger.log(
+        JSON.stringify({
+          event: 'req',
+          requestId,
+          method,
+          url,
+          tenantId,
+          userId,
+          role,
+        }),
+      );
     } else {
-      this.logger.log(`→ [${requestId}] ${method} ${url} tenant=${tenantId} user=${userId}`);
+      this.logger.log(
+        `→ [${requestId}] ${method} ${url} tenant=${tenantId} user=${userId}`,
+      );
     }
 
     return next.handle().pipe(
@@ -49,17 +69,43 @@ export class LoggingInterceptor implements NestInterceptor {
           const ms = Date.now() - startTime;
           const status = response.statusCode;
           if (isProd) {
-            this.logger.log(JSON.stringify({ event: 'res', requestId, method, url, status, ms, tenantId, userId }));
+            this.logger.log(
+              JSON.stringify({
+                event: 'res',
+                requestId,
+                method,
+                url,
+                status,
+                ms,
+                tenantId,
+                userId,
+              }),
+            );
           } else {
-            this.logger.log(`← [${requestId}] ${method} ${url} ${status} ${ms}ms`);
+            this.logger.log(
+              `← [${requestId}] ${method} ${url} ${status} ${ms}ms`,
+            );
           }
         },
         error: (err: Error) => {
           const ms = Date.now() - startTime;
           if (isProd) {
-            this.logger.error(JSON.stringify({ event: 'err', requestId, method, url, error: err.message, ms, tenantId, userId }));
+            this.logger.error(
+              JSON.stringify({
+                event: 'err',
+                requestId,
+                method,
+                url,
+                error: err.message,
+                ms,
+                tenantId,
+                userId,
+              }),
+            );
           } else {
-            this.logger.error(`← [${requestId}] ${method} ${url} ERROR=${err.message} ${ms}ms`);
+            this.logger.error(
+              `← [${requestId}] ${method} ${url} ERROR=${err.message} ${ms}ms`,
+            );
           }
         },
       }),

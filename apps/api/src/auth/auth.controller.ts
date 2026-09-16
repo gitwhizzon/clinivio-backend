@@ -7,19 +7,19 @@ import {
   Request,
   HttpCode,
   HttpStatus,
-} from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
-import { Throttle } from "@nestjs/throttler";
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import {
   IsEmail,
   IsString,
   IsOptional,
   IsUUID,
   MinLength,
-} from "class-validator";
-import { AuthService } from "./auth.service";
-import { LocalAuthGuard } from "./guards/local-auth.guard";
-import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+} from 'class-validator';
+import { AuthService } from './auth.service';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 class LoginDto {
   @IsString()
@@ -71,29 +71,29 @@ class ResetPasswordDto {
   newPassword: string;
 }
 
-@ApiTags("Authentication")
-@Controller("auth")
+@ApiTags('Authentication')
+@Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post("login")
+  @Post('login')
   @Throttle({ default: { ttl: 900000, limit: 10 } })
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Login with email, password, and optional tenantId",
+    summary: 'Login with email, password, and optional tenantId',
   })
   async login(@Body() _dto: LoginDto, @Request() req: any) {
     return this.authService.login(req.user);
   }
 
-  @Post("refresh")
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto.refreshToken);
   }
 
-  @Post("logout")
+  @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -101,7 +101,7 @@ export class AuthController {
     return this.authService.logout(req.user.id);
   }
 
-  @Patch("change-password")
+  @Patch('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -115,19 +115,19 @@ export class AuthController {
     );
   }
 
-  @Post("forgot-password")
+  @Post('forgot-password')
   @Throttle({ default: { ttl: 900000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Request a password reset email" })
+  @ApiOperation({ summary: 'Request a password reset email' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email, dto.slug);
   }
 
-  @Post("reset-password")
+  @Post('reset-password')
   @Throttle({ default: { ttl: 900000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Reset password using a token from the reset email",
+    summary: 'Reset password using a token from the reset email',
   })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);

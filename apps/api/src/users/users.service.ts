@@ -2,15 +2,15 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-} from "@nestjs/common";
-import * as bcrypt from "bcrypt";
+} from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import {
   User,
   DoctorProfile,
   StaffProfile,
   Role,
   TenantEntityManager,
-} from "@mediflow/database";
+} from '@mediflow/database';
 
 const STAFF_ROLES: Role[] = [
   Role.NURSE,
@@ -77,21 +77,21 @@ export class UsersService {
     limit = 50,
   ) {
     const qb = this.db
-      .qb(User, "user")
-      .leftJoinAndSelect("user.doctorProfile", "doctorProfile")
-      .leftJoinAndSelect("user.staffProfile", "staffProfile")
-      .leftJoinAndSelect("staffProfile.department", "staffDept")
-      .leftJoinAndSelect("doctorProfile.department", "doctorDept")
-      .where("user.tenantId = :tenantId", { tenantId })
-      .orderBy("user.firstName", "ASC")
+      .qb(User, 'user')
+      .leftJoinAndSelect('user.doctorProfile', 'doctorProfile')
+      .leftJoinAndSelect('user.staffProfile', 'staffProfile')
+      .leftJoinAndSelect('staffProfile.department', 'staffDept')
+      .leftJoinAndSelect('doctorProfile.department', 'doctorDept')
+      .where('user.tenantId = :tenantId', { tenantId })
+      .orderBy('user.firstName', 'ASC')
       .skip((page - 1) * limit)
       .take(limit);
 
     if (filters.role) {
-      qb.andWhere("user.role = :role", { role: filters.role });
+      qb.andWhere('user.role = :role', { role: filters.role });
     }
     if (filters.isActive !== undefined) {
-      qb.andWhere("user.isActive = :isActive", { isActive: filters.isActive });
+      qb.andWhere('user.isActive = :isActive', { isActive: filters.isActive });
     }
     if (filters.q) {
       qb.andWhere(
@@ -114,10 +114,10 @@ export class UsersService {
     const user = await this.db.repo(User).findOne({
       where: { id, tenantId },
       relations: [
-        "doctorProfile",
-        "doctorProfile.department",
-        "staffProfile",
-        "staffProfile.department",
+        'doctorProfile',
+        'doctorProfile.department',
+        'staffProfile',
+        'staffProfile.department',
       ],
     });
     if (!user) throw new NotFoundException(`User ${id} not found`);
@@ -126,21 +126,21 @@ export class UsersService {
 
   private async generateStaffId(tenantId: string, role: Role): Promise<string> {
     const prefixes: Partial<Record<Role, string>> = {
-      [Role.ADMIN]: "ADM",
-      [Role.DOCTOR]: "DOC",
-      [Role.NURSE]: "NRS",
-      [Role.RECEPTIONIST]: "RCP",
-      [Role.LAB_TECHNICIAN]: "LAB",
-      [Role.PHARMACIST]: "PHM",
+      [Role.ADMIN]: 'ADM',
+      [Role.DOCTOR]: 'DOC',
+      [Role.NURSE]: 'NRS',
+      [Role.RECEPTIONIST]: 'RCP',
+      [Role.LAB_TECHNICIAN]: 'LAB',
+      [Role.PHARMACIST]: 'PHM',
     };
-    const prefix = prefixes[role] ?? "STF";
+    const prefix = prefixes[role] ?? 'STF';
 
     const last = await this.db
       .repo(User)
-      .createQueryBuilder("u")
-      .where("u.tenantId = :tenantId", { tenantId })
-      .andWhere("u.staffId LIKE :prefix", { prefix: `${prefix}%` })
-      .orderBy("u.staffId", "DESC")
+      .createQueryBuilder('u')
+      .where('u.tenantId = :tenantId', { tenantId })
+      .andWhere('u.staffId LIKE :prefix', { prefix: `${prefix}%` })
+      .orderBy('u.staffId', 'DESC')
       .getOne();
 
     let next = 1;
@@ -148,7 +148,7 @@ export class UsersService {
       const num = parseInt(last.staffId.slice(prefix.length), 10);
       if (!isNaN(num)) next = num + 1;
     }
-    return `${prefix}${String(next).padStart(4, "0")}`;
+    return `${prefix}${String(next).padStart(4, '0')}`;
   }
 
   async create(tenantId: string, dto: CreateUserDto) {

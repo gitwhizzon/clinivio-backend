@@ -3,21 +3,21 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
-} from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import * as bcrypt from "bcrypt";
-import * as crypto from "crypto";
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import {
   User,
   Tenant,
   Role,
   TenantDataSourceRegistry,
-} from "@mediflow/database";
-import { JwtPayload } from "@mediflow/shared";
-import { EmailService } from "../email/email.service";
+} from '@mediflow/database';
+import { JwtPayload } from '@mediflow/shared';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -76,7 +76,7 @@ export class AuthService {
           { tenantId: resolvedTenantId, staffId: identifier, isActive: true },
           { tenantId: resolvedTenantId, email: identifier, isActive: true },
         ],
-        relations: ["doctorProfile"],
+        relations: ['doctorProfile'],
       });
       if (user) {
         const isMatch = await bcrypt.compare(password, user.passwordHash);
@@ -89,7 +89,7 @@ export class AuthService {
       // ── SUPER_ADMIN path (no tenant context) — email only ─────────────
       user = await this.platformDs.getRepository(User).findOne({
         where: { email: identifier, role: Role.SUPER_ADMIN, isActive: true },
-        relations: ["doctorProfile"],
+        relations: ['doctorProfile'],
       });
       if (user) {
         const isMatch = await bcrypt.compare(password, user.passwordHash);
@@ -102,7 +102,7 @@ export class AuthService {
 
     if (!user) return null;
 
-    const { passwordHash, ...result } = user;
+    const { passwordHash: _passwordHash, ...result } = user;
     return result;
   }
 
@@ -115,8 +115,8 @@ export class AuthService {
     };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>("jwt.refreshSecret"),
-      expiresIn: this.configService.get<string>("jwt.refreshExpiresIn"),
+      secret: this.configService.get<string>('jwt.refreshSecret'),
+      expiresIn: this.configService.get<string>('jwt.refreshExpiresIn'),
     });
     return {
       accessToken,
@@ -137,7 +137,7 @@ export class AuthService {
   async refreshToken(token: string) {
     try {
       const payload = this.jwtService.verify<JwtPayload>(token, {
-        secret: this.configService.get<string>("jwt.refreshSecret"),
+        secret: this.configService.get<string>('jwt.refreshSecret'),
       });
       const newPayload: JwtPayload = {
         sub: payload.sub,
@@ -147,12 +147,12 @@ export class AuthService {
       };
       return { accessToken: this.jwtService.sign(newPayload) };
     } catch {
-      throw new UnauthorizedException("Invalid or expired refresh token");
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 
   async logout(_userId: string) {
-    return { message: "Logged out successfully" };
+    return { message: 'Logged out successfully' };
   }
 
   /**
@@ -191,17 +191,17 @@ export class AuthService {
 
     // ── Verify current password ──────────────────────────────────────────
     const user = await repo.findOne({ where: { id: userId, isActive: true } });
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException('User not found');
 
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isMatch)
-      throw new UnauthorizedException("Current password is incorrect");
+      throw new UnauthorizedException('Current password is incorrect');
 
     // ── Apply new password ────────────────────────────────────────────────
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await repo.update(userId, { passwordHash });
 
-    return { message: "Password changed successfully" };
+    return { message: 'Password changed successfully' };
   }
 
   /**
@@ -219,7 +219,7 @@ export class AuthService {
     if (!tenant) {
       // Return generic message even when tenant not found — no enumeration
       return {
-        message: "If that email is registered, a reset link has been sent.",
+        message: 'If that email is registered, a reset link has been sent.',
       };
     }
 
@@ -232,11 +232,11 @@ export class AuthService {
 
     if (!user) {
       return {
-        message: "If that email is registered, a reset link has been sent.",
+        message: 'If that email is registered, a reset link has been sent.',
       };
     }
 
-    const token = crypto.randomBytes(48).toString("hex");
+    const token = crypto.randomBytes(48).toString('hex');
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await userRepo.update(user.id, {
@@ -244,7 +244,7 @@ export class AuthService {
       passwordResetExpiry: expiry,
     });
 
-    const frontendUrl = this.configService.get<string>("frontendUrl");
+    const frontendUrl = this.configService.get<string>('frontendUrl');
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     const { html, text } = this.emailService.buildPasswordResetEmail(
       user.firstName,
@@ -253,13 +253,13 @@ export class AuthService {
 
     await this.emailService.sendMail({
       to: user.email,
-      subject: "Reset your Clinivio password",
+      subject: 'Reset your Clinivio password',
       html,
       text,
     });
 
     return {
-      message: "If that email is registered, a reset link has been sent.",
+      message: 'If that email is registered, a reset link has been sent.',
     };
   }
 
@@ -276,12 +276,12 @@ export class AuthService {
     });
 
     if (!user || !user.passwordResetExpiry) {
-      throw new BadRequestException("Invalid or expired password reset link.");
+      throw new BadRequestException('Invalid or expired password reset link.');
     }
 
     if (new Date() > user.passwordResetExpiry) {
       throw new BadRequestException(
-        "Password reset link has expired. Please request a new one.",
+        'Password reset link has expired. Please request a new one.',
       );
     }
 
@@ -295,7 +295,7 @@ export class AuthService {
 
     return {
       message:
-        "Password reset successfully. You can now log in with your new password.",
+        'Password reset successfully. You can now log in with your new password.',
     };
   }
 }

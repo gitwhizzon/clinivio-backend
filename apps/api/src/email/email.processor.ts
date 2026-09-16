@@ -1,7 +1,7 @@
-import { Process, Processor } from "@nestjs/bull";
-import { Logger } from "@nestjs/common";
-import { Job } from "bull";
-import { EmailService } from "./email.service";
+import { Process, Processor } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
+import { Job } from 'bull';
+import { EmailService } from './email.service';
 
 export interface SendEmailJobData {
   to: string;
@@ -12,13 +12,13 @@ export interface SendEmailJobData {
   tenantId?: string;
 }
 
-@Processor("notifications")
+@Processor('notifications')
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
 
   constructor(private readonly emailService: EmailService) {}
 
-  @Process("send-email")
+  @Process('send-email')
   async handleSendEmail(job: Job<SendEmailJobData>): Promise<void> {
     const { to, subject, html, text } = job.data;
     this.logger.log(`Processing send-email job ${job.id} → ${to}`);

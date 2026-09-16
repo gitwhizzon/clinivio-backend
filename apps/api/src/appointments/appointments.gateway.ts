@@ -6,9 +6,9 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
-} from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
+} from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
 
 /**
  * AppointmentsGateway — real-time appointment status updates via WebSocket.
@@ -24,10 +24,10 @@ import { Server, Socket } from "socket.io";
  */
 @WebSocketGateway({
   cors: {
-    origin: "*", // tighten in production via config
+    origin: '*', // tighten in production via config
     credentials: false,
   },
-  namespace: "/appointments",
+  namespace: '/appointments',
 })
 export class AppointmentsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -45,7 +45,7 @@ export class AppointmentsGateway
     this.logger.debug(`[WS] Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage("subscribe")
+  @SubscribeMessage('subscribe')
   handleSubscribe(
     @MessageBody() data: { tenantId: string },
     @ConnectedSocket() client: Socket,
@@ -65,6 +65,6 @@ export class AppointmentsGateway
     payload: { id: string; status: string; tokenNumber?: number | null },
   ) {
     const room = `tenant:${tenantId}`;
-    this.server.to(room).emit("appointment:statusUpdate", payload);
+    this.server.to(room).emit('appointment:statusUpdate', payload);
   }
 }

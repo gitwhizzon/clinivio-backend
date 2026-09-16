@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Post, Patch, Body, Param,
-  Query, DefaultValuePipe, ParseIntPipe, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -22,7 +30,10 @@ export class ConsultationController {
   @Get('by-appointment/:appointmentId')
   @Roles('ADMIN', 'DOCTOR', 'NURSE')
   @ApiOperation({ summary: 'Get or create consultation for an appointment' })
-  getOrCreate(@Param('appointmentId') appointmentId: string, @TenantId() tenantId: string) {
+  getOrCreate(
+    @Param('appointmentId') appointmentId: string,
+    @TenantId() tenantId: string,
+  ) {
     return this.svc.getOrCreate(appointmentId, tenantId);
   }
 
@@ -73,7 +84,10 @@ export class ConsultationController {
   @Post('follow-ups/:followUpId/complete')
   @Roles('ADMIN', 'DOCTOR', 'NURSE')
   @ApiOperation({ summary: 'Mark follow-up as complete' })
-  completeFollowUp(@Param('followUpId') followUpId: string, @TenantId() tenantId: string) {
+  completeFollowUp(
+    @Param('followUpId') followUpId: string,
+    @TenantId() tenantId: string,
+  ) {
     return this.svc.completeFollowUp(followUpId, tenantId);
   }
 

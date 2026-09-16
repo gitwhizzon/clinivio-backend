@@ -1,7 +1,15 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToMany, OneToOne, JoinColumn, Index, Unique,
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  JoinColumn,
+  Index,
+  Unique,
 } from 'typeorm';
 import { RoomType, BedStatus, IPDAdmissionStatus } from './enums';
 import { Tenant } from './tenant.entity';
@@ -50,7 +58,10 @@ export class Room {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
@@ -92,7 +103,10 @@ export class Bed {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
@@ -136,7 +150,11 @@ export class IPDAdmission {
   @Column({ name: 'admission_number' })
   admissionNumber: string;
 
-  @Column({ type: 'enum', enum: IPDAdmissionStatus, default: IPDAdmissionStatus.ADMITTED })
+  @Column({
+    type: 'enum',
+    enum: IPDAdmissionStatus,
+    default: IPDAdmissionStatus.ADMITTED,
+  })
   status: IPDAdmissionStatus;
 
   @Column({ name: 'admission_reason' })
@@ -148,10 +166,18 @@ export class IPDAdmission {
   @Column({ name: 'opinion_obtained_by', nullable: true })
   opinionObtainedBy: string | null;
 
-  @Column({ name: 'admitted_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'admitted_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   admittedAt: Date;
 
-  @Column({ name: 'estimated_discharge_at', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'estimated_discharge_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
   estimatedDischargeAt: Date | null;
 
   @Column({ name: 'discharged_at', type: 'timestamptz', nullable: true })
@@ -166,7 +192,10 @@ export class IPDAdmission {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
@@ -239,10 +268,22 @@ export class IPDVitalSnapshot {
   @Column({ type: 'decimal', precision: 4, scale: 1, nullable: true })
   temperature: string | null;
 
-  @Column({ name: 'weight_kg', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'weight_kg',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   weightKg: string | null;
 
-  @Column({ name: 'height_cm', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'height_cm',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   heightCm: string | null;
 
   @Column({ type: 'decimal', precision: 4, scale: 1, nullable: true })
@@ -251,7 +292,13 @@ export class IPDVitalSnapshot {
   @Column({ type: 'int', nullable: true })
   spo2: number | null;
 
-  @Column({ name: 'rbs_mg_dl', type: 'decimal', precision: 5, scale: 1, nullable: true })
+  @Column({
+    name: 'rbs_mg_dl',
+    type: 'decimal',
+    precision: 5,
+    scale: 1,
+    nullable: true,
+  })
   rbsMgDl: string | null;
 
   @Column({ name: 'respiratory_rate', type: 'int', nullable: true })
@@ -260,17 +307,26 @@ export class IPDVitalSnapshot {
   @Column({ nullable: true, type: 'text' })
   notes: string | null;
 
-  @Column({ name: 'recorded_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'recorded_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   recordedAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @ManyToOne(() => IPDAdmission, (a) => a.vitalSnapshots, { onDelete: 'CASCADE' })
+  @ManyToOne(() => IPDAdmission, (a) => a.vitalSnapshots, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'admission_id' })
   admission: IPDAdmission;
 
@@ -303,7 +359,11 @@ export class IPDTreatment {
   @Column({ nullable: true, type: 'text' })
   instructions: string | null;
 
-  @Column({ name: 'started_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'started_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   startedAt: Date;
 
   @Column({ name: 'ended_at', type: 'timestamptz', nullable: true })
@@ -321,7 +381,10 @@ export class IPDTreatment {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
@@ -367,7 +430,11 @@ export class IPDProcedure {
   @Column({ nullable: true, type: 'text' })
   complications: string | null;
 
-  @Column({ name: 'performed_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'performed_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   performedAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -376,7 +443,10 @@ export class IPDProcedure {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
@@ -433,11 +503,16 @@ export class DischargeAdvice {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @OneToOne(() => IPDAdmission, (a) => a.dischargeAdvice, { onDelete: 'CASCADE' })
+  @OneToOne(() => IPDAdmission, (a) => a.dischargeAdvice, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'admission_id' })
   admission: IPDAdmission;
 
@@ -484,17 +559,26 @@ export class DischargeSummary {
   @Column({ name: 'pdf_s3_key', nullable: true })
   pdfS3Key: string | null;
 
-  @Column({ name: 'generated_at', type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'generated_at',
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   generatedAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant, { onDelete: 'CASCADE', createForeignKeyConstraints: false })
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @OneToOne(() => IPDAdmission, (a) => a.dischargeSummary, { onDelete: 'CASCADE' })
+  @OneToOne(() => IPDAdmission, (a) => a.dischargeSummary, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'admission_id' })
   admission: IPDAdmission;
 

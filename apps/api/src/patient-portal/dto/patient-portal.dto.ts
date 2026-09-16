@@ -6,17 +6,17 @@ import {
   IsEmail,
   IsEnum,
   IsDateString,
-} from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Gender } from "@mediflow/database";
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Gender } from '@mediflow/database';
 
 export class PatientRegisterDto {
-  @ApiProperty({ example: "city-hospital" })
+  @ApiProperty({ example: 'city-hospital' })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({ example: "+919876543210" })
+  @ApiProperty({ example: '+919876543210' })
   @IsString()
   @IsNotEmpty()
   phone: string;
@@ -26,22 +26,22 @@ export class PatientRegisterDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ example: "Ravi" })
+  @ApiProperty({ example: 'Ravi' })
   @IsString()
   @IsNotEmpty()
   firstName: string;
 
-  @ApiPropertyOptional({ example: "Kumar" })
+  @ApiPropertyOptional({ example: 'Kumar' })
   @IsOptional()
   @IsString()
   lastName?: string;
 
-  @ApiPropertyOptional({ example: "ravi@email.com" })
+  @ApiPropertyOptional({ example: 'ravi@email.com' })
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: "1990-05-15" })
+  @ApiPropertyOptional({ example: '1990-05-15' })
   @IsOptional()
   @IsDateString()
   dob?: string;
@@ -53,19 +53,19 @@ export class PatientRegisterDto {
 
   /** Link to an existing patient by UHID (optional). If provided, creates an
    *  account for that patient instead of registering a new patient record. */
-  @ApiPropertyOptional({ example: "UHID-000001" })
+  @ApiPropertyOptional({ example: 'UHID-000001' })
   @IsOptional()
   @IsString()
   uhid?: string;
 }
 
 export class PatientLoginDto {
-  @ApiProperty({ example: "city-hospital" })
+  @ApiProperty({ example: 'city-hospital' })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({ example: "+919876543210" })
+  @ApiProperty({ example: '+919876543210' })
   @IsString()
   @IsNotEmpty()
   phone: string;
@@ -119,36 +119,36 @@ export class UpdatePatientProfileDto {
 }
 
 export class RequestOtpDto {
-  @ApiProperty({ example: "city-hospital" })
+  @ApiProperty({ example: 'city-hospital' })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({ example: "+919876543210" })
+  @ApiProperty({ example: '+919876543210' })
   @IsString()
   @IsNotEmpty()
   phone: string;
 }
 
 export class VerifyOtpDto {
-  @ApiProperty({ example: "city-hospital" })
+  @ApiProperty({ example: 'city-hospital' })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({ example: "+919876543210" })
+  @ApiProperty({ example: '+919876543210' })
   @IsString()
   @IsNotEmpty()
   phone: string;
 
-  @ApiProperty({ example: "123456" })
+  @ApiProperty({ example: '123456' })
   @IsString()
   @IsNotEmpty()
   otp: string;
 }
 
 export class CreatePaymentOrderDto {
-  @ApiProperty({ description: "Invoice ID to pay" })
+  @ApiProperty({ description: 'Invoice ID to pay' })
   @IsString()
   @IsNotEmpty()
   invoiceId: string;

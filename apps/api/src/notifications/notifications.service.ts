@@ -1,12 +1,12 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bull";
-import { Queue } from "bull";
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {
   NotificationLog,
   NotificationChannel,
   NotificationStatus,
   TenantEntityManager,
-} from "@mediflow/database";
+} from '@mediflow/database';
 
 export class CreateNotificationDto {
   patientId: string;
@@ -26,7 +26,7 @@ export class NotificationsService {
 
   constructor(
     private readonly db: TenantEntityManager,
-    @InjectQueue("notifications")
+    @InjectQueue('notifications')
     private notificationsQueue: Queue,
   ) {}
 
@@ -49,10 +49,10 @@ export class NotificationsService {
 
     const jobName =
       dto.channel === NotificationChannel.WHATSAPP
-        ? "send-whatsapp"
+        ? 'send-whatsapp'
         : dto.channel === NotificationChannel.EMAIL
-          ? "send-email"
-          : "send-sms";
+          ? 'send-email'
+          : 'send-sms';
 
     const jobOptions: any = { jobId: log.id };
     if (dto.scheduledAt) {
@@ -75,9 +75,9 @@ export class NotificationsService {
         // EMAIL jobs: pass subject/html from payload if provided
         ...(dto.channel === NotificationChannel.EMAIL && {
           to: dto.email,
-          subject: dto.payload["subject"] ?? "Notification from Clinivio",
-          html: dto.payload["html"] ?? "",
-          text: dto.payload["text"],
+          subject: dto.payload['subject'] ?? 'Notification from Clinivio',
+          html: dto.payload['html'] ?? '',
+          text: dto.payload['text'],
         }),
       },
       jobOptions,
@@ -93,8 +93,8 @@ export class NotificationsService {
     timestamp: string,
   ) {
     const log = await this.db
-      .qb(NotificationLog, "log")
-      .where("log.wamid = :wamid", { wamid })
+      .qb(NotificationLog, 'log')
+      .where('log.wamid = :wamid', { wamid })
       .getOne();
 
     if (!log) {
@@ -119,7 +119,7 @@ export class NotificationsService {
   async findByPatient(patientId: string, tenantId: string) {
     return this.db.repo(NotificationLog).find({
       where: { patientId, tenantId },
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
       take: 50,
     });
   }
@@ -151,10 +151,10 @@ export class NotificationsService {
 
     const jobName =
       dto.channel === NotificationChannel.WHATSAPP
-        ? "send-whatsapp"
+        ? 'send-whatsapp'
         : dto.channel === NotificationChannel.EMAIL
-          ? "send-email"
-          : "send-sms";
+          ? 'send-email'
+          : 'send-sms';
 
     await this.notificationsQueue.add(
       jobName,
@@ -168,9 +168,9 @@ export class NotificationsService {
         payload: dto.payload,
         ...(dto.channel === NotificationChannel.EMAIL && {
           to: dto.email,
-          subject: dto.payload["subject"] ?? "Notification from Clinivio",
-          html: dto.payload["html"] ?? "",
-          text: dto.payload["text"],
+          subject: dto.payload['subject'] ?? 'Notification from Clinivio',
+          html: dto.payload['html'] ?? '',
+          text: dto.payload['text'],
         }),
       },
       { delay: delayMs > 0 ? delayMs : 0, jobId: `delayed-${log.id}` },

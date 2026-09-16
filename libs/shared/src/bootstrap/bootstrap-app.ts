@@ -15,7 +15,10 @@ export interface BootstrapOptions {
   rawBodyEnabled?: boolean;
 }
 
-export async function bootstrapApp(app: INestApplication, opts: BootstrapOptions): Promise<void> {
+export async function bootstrapApp(
+  app: INestApplication,
+  opts: BootstrapOptions,
+): Promise<void> {
   const logger = new Logger(opts.serviceName);
 
   // ── Security headers ────────────────────────────────────────────────────────
@@ -28,17 +31,28 @@ export async function bootstrapApp(app: INestApplication, opts: BootstrapOptions
 
   // ── Request ID ──────────────────────────────────────────────────────────────
   const reqIdMiddleware = new RequestIdMiddleware();
-  app.use((req: any, res: any, next: any) => reqIdMiddleware.use(req, res, next));
+  app.use((req: any, res: any, next: any) =>
+    reqIdMiddleware.use(req, res, next),
+  );
 
   // ── CORS ────────────────────────────────────────────────────────────────────
   const origins = opts.allowedOrigins?.length
     ? opts.allowedOrigins
-    : (process.env.ALLOWED_ORIGINS ?? 'https://clinivio-frontend.vercel.app').split(',').map(s => s.trim());
+    : (process.env.ALLOWED_ORIGINS ?? 'https://clinivio-frontend.vercel.app')
+        .split(',')
+        .map((s) => s.trim());
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Allow requests with no origin (mobile apps, Postman, same-origin)
-      if (!origin || origins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      if (
+        !origin ||
+        origins.includes(origin) ||
+        process.env.NODE_ENV !== 'production'
+      ) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: Origin ${origin} not allowed`));
@@ -46,7 +60,13 @@ export async function bootstrapApp(app: INestApplication, opts: BootstrapOptions
     },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Tenant-ID', 'X-Tenant-Slug'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Request-ID',
+      'X-Tenant-ID',
+      'X-Tenant-Slug',
+    ],
     exposedHeaders: ['X-Request-ID'],
   });
 
@@ -77,13 +97,23 @@ export async function bootstrapApp(app: INestApplication, opts: BootstrapOptions
       name: 'X-Request-ID',
       in: 'header',
       required: false,
-      schema: { type: 'string', description: 'Idempotency / tracing request ID' },
+      schema: {
+        type: 'string',
+        description: 'Idempotency / tracing request ID',
+      },
     })
     .build();
 
   // Only expose Swagger in non-production (or explicitly enabled)
-  if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
-    SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerConfig));
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SWAGGER_ENABLED === 'true'
+  ) {
+    SwaggerModule.setup(
+      'api/docs',
+      app,
+      SwaggerModule.createDocument(app, swaggerConfig),
+    );
     logger.log(`Swagger: http://localhost:${opts.port}/api/docs`);
   }
 

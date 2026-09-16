@@ -1,9 +1,5 @@
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-} from "@nestjs/common";
-import { v4 as uuidv4 } from "uuid";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Patient,
   PatientFamily,
@@ -12,35 +8,35 @@ import {
   TenantEntityManager,
   ILike,
   In,
-} from "@mediflow/database";
-import { CreatePatientDto } from "./dto/create-patient.dto";
-import { UpdatePatientDto } from "./dto/update-patient.dto";
-import { KafkaProducerService } from "../kafka/kafka-producer.service";
-import { KAFKA_TOPICS } from "@mediflow/shared";
+} from '@mediflow/database';
+import { CreatePatientDto } from './dto/create-patient.dto';
+import { UpdatePatientDto } from './dto/update-patient.dto';
+import { KafkaProducerService } from '../kafka/kafka-producer.service';
+import { KAFKA_TOPICS } from '@mediflow/shared';
 
 const PATIENT_SELECT: (keyof Patient)[] = [
-  "id",
-  "tenantId",
-  "familyId",
-  "uhid",
-  "firstName",
-  "lastName",
-  "phone",
-  "whatsappPhone",
-  "hasWhatsapp",
-  "email",
-  "dob",
-  "gender",
-  "bloodGroup",
-  "abhaId",
-  "preferredLanguage",
-  "address",
-  "emergencyContactName",
-  "emergencyContactPhone",
-  "consentGivenAt",
-  "isActive",
-  "createdAt",
-  "conditions",
+  'id',
+  'tenantId',
+  'familyId',
+  'uhid',
+  'firstName',
+  'lastName',
+  'phone',
+  'whatsappPhone',
+  'hasWhatsapp',
+  'email',
+  'dob',
+  'gender',
+  'bloodGroup',
+  'abhaId',
+  'preferredLanguage',
+  'address',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'consentGivenAt',
+  'isActive',
+  'createdAt',
+  'conditions',
 ];
 
 @Injectable()
@@ -53,7 +49,7 @@ export class PatientsService {
   private async generateUHID(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
     const count = await this.db.repo(Patient).count({ where: { tenantId } });
-    return `MF-${year}-${String(count + 1).padStart(6, "0")}`;
+    return `MF-${year}-${String(count + 1).padStart(6, '0')}`;
   }
 
   async create(tenantId: string, dto: CreatePatientDto) {
@@ -90,12 +86,12 @@ export class PatientsService {
         gender: dto.gender as any,
         bloodGroup: dto.bloodGroup,
         abhaId: dto.abhaId,
-        preferredLanguage: (dto.preferredLanguage as any) ?? "EN",
+        preferredLanguage: (dto.preferredLanguage as any) ?? 'EN',
         address: dto.address,
         emergencyContactName: dto.emergencyContactName,
         emergencyContactPhone: dto.emergencyContactPhone,
         consentGivenAt: dto.consentGiven ? new Date() : null,
-        consentVersion: dto.consentGiven ? "1.0" : null,
+        consentVersion: dto.consentGiven ? '1.0' : null,
       }),
     );
 
@@ -105,12 +101,12 @@ export class PatientsService {
       .createQueryBuilder()
       .update()
       .set({ primaryPatientId: patient.id })
-      .where("id = :id AND primary_patient_id IS NULL", { id: familyId })
+      .where('id = :id AND primary_patient_id IS NULL', { id: familyId })
       .execute();
 
     await this.kafka.emit(KAFKA_TOPICS.PATIENT_REGISTERED, {
       eventId: uuidv4(),
-      eventType: "patient.registered",
+      eventType: 'patient.registered',
       tenantId,
       timestamp: new Date().toISOString(),
       data: {
@@ -120,7 +116,7 @@ export class PatientsService {
         whatsappPhone: patient.whatsappPhone,
         hasWhatsapp: patient.hasWhatsapp,
         familyId: patient.familyId,
-        name: `${patient.firstName} ${patient.lastName ?? ""}`.trim(),
+        name: `${patient.firstName} ${patient.lastName ?? ''}`.trim(),
         uhid: patient.uhid,
         preferredLanguage: patient.preferredLanguage,
       },
@@ -136,7 +132,7 @@ export class PatientsService {
       select: PATIENT_SELECT,
       skip,
       take: limit,
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
     });
     return {
       data,
@@ -147,9 +143,9 @@ export class PatientsService {
   async findById(id: string, tenantId: string) {
     const patient = await this.db.repo(Patient).findOne({
       where: { id, tenantId },
-      relations: ["family"],
+      relations: ['family'],
     });
-    if (!patient) throw new NotFoundException("Patient not found");
+    if (!patient) throw new NotFoundException('Patient not found');
     return patient;
   }
 
@@ -161,7 +157,7 @@ export class PatientsService {
       ],
       select: PATIENT_SELECT,
     });
-    if (!patient) throw new NotFoundException("Patient not found");
+    if (!patient) throw new NotFoundException('Patient not found');
     return patient;
   }
 
@@ -169,19 +165,19 @@ export class PatientsService {
     const members = await this.db.repo(Patient).find({
       where: { familyId, tenantId, isActive: true },
       select: PATIENT_SELECT,
-      order: { createdAt: "ASC" },
+      order: { createdAt: 'ASC' },
     });
-    if (!members.length) throw new NotFoundException("Family group not found");
+    if (!members.length) throw new NotFoundException('Family group not found');
     return members;
   }
 
   async findFamilyByWhatsapp(whatsappPhone: string, tenantId: string) {
     const family = await this.db.repo(PatientFamily).findOne({
       where: { whatsappPhone, tenantId },
-      relations: ["patients"],
+      relations: ['patients'],
     });
     if (!family)
-      throw new NotFoundException("No family found for this WhatsApp number");
+      throw new NotFoundException('No family found for this WhatsApp number');
     return family;
   }
 
@@ -228,7 +224,7 @@ export class PatientsService {
     await this.findById(id, tenantId);
     await this.db
       .repo(Patient)
-      .update(id, { consentGivenAt: new Date(), consentVersion: "1.0" });
+      .update(id, { consentGivenAt: new Date(), consentVersion: '1.0' });
     return this.findById(id, tenantId);
   }
 
@@ -249,12 +245,12 @@ export class PatientsService {
     const [consultations] = await this.db.repo(Consultation).findAndCount({
       where: { patientId, tenantId },
       relations: [
-        "appointment",
-        "doctor",
-        "prescriptions",
-        "prescriptions.items",
+        'appointment',
+        'doctor',
+        'prescriptions',
+        'prescriptions.items',
       ],
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
       skip,
       take: limit,
     });
@@ -266,8 +262,8 @@ export class PatientsService {
 
     const labOrders = await this.db.repo(LabOrder).find({
       where: { tenantId, appointmentId: In(apptIds) },
-      relations: ["items", "items.labTest"],
-      order: { createdAt: "DESC" },
+      relations: ['items', 'items.labTest'],
+      order: { createdAt: 'DESC' },
     });
 
     const ordersMap = new Map<string, typeof labOrders>();
