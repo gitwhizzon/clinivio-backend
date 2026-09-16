@@ -74,6 +74,14 @@ export class UpdateTenantDto {
 
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      "Allow doctors to start consultations before the fee is paid (patient pays at the end). Defaults to false — payment is required before check-in.",
+  })
+  @IsOptional()
+  @IsBoolean()
+  allowConsultationBeforePayment?: boolean;
+
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsEmail() email?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() website?: string;

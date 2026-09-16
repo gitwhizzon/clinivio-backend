@@ -197,12 +197,20 @@ export class AppointmentsController {
 
   @Post(":id/confirm-payment")
   @Roles("ADMIN", "RECEPTIONIST")
-  @ApiOperation({ summary: "Confirm payment → CONFIRMED" })
+  @ApiOperation({ summary: "Confirm (full or partial) payment" })
   confirmPayment(
     @Param("id") id: string,
     @TenantId() tenantId: string,
     @Body()
-    body: { paymentMethod: string; amount: number; razorpayPaymentId?: string },
+    body: {
+      paymentMethod: string;
+      amount: number;
+      razorpayPaymentId?: string;
+      lineItems?: { description: string; amount: number; discount?: number }[];
+      discountType?: string;
+      discountValue?: number;
+    },
+    @CurrentUser() user: any,
   ) {
     return this.svc.confirmPayment(
       id,
@@ -210,6 +218,12 @@ export class AppointmentsController {
       body.paymentMethod,
       body.amount,
       body.razorpayPaymentId,
+      {
+        lineItems: body.lineItems,
+        discountType: body.discountType as any,
+        discountValue: body.discountValue,
+        collectedByUserId: user?.sub,
+      },
     );
   }
 

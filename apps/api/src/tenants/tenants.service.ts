@@ -207,6 +207,9 @@ export class TenantsService {
     if (data.subscriptionTier !== undefined)
       tenantPatch.subscriptionTier = data.subscriptionTier as any;
     if (data.isActive !== undefined) tenantPatch.isActive = data.isActive;
+    if (data.allowConsultationBeforePayment !== undefined)
+      tenantPatch.allowConsultationBeforePayment =
+        data.allowConsultationBeforePayment;
 
     if (Object.keys(tenantPatch).length) {
       await this.tenantRepo.update(id, tenantPatch);

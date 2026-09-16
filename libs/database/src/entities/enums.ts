@@ -51,9 +51,20 @@ export enum AppointmentStatus {
 
 export enum PaymentStatus {
   PENDING = "PENDING",
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PARTIALLY_PAID = "PARTIALLY_PAID",
   PAID = "PAID",
   REFUNDED = "REFUNDED",
   FAILED = "FAILED",
+}
+
+export enum DiscountType {
+  PERCENTAGE = "PERCENTAGE",
+  FLAT = "FLAT",
+}
+
+export enum InvoiceType {
 }
 
 export enum InvoiceType {
@@ -168,4 +179,5 @@ export enum AnaesthesiaType {
   EPIDURAL = "EPIDURAL",
   LOCAL = "LOCAL",
   SEDATION = "SEDATION",
+}
 }

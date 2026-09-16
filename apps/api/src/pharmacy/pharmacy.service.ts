@@ -12,6 +12,7 @@ import {
   PharmacyPurchaseItem,
   Appointment,
   Invoice,
+  InvoicePayment,
   Patient,
   Tenant,
   PharmacyOrderStatus,
@@ -246,7 +247,7 @@ export class PharmacyService {
           .repo(Invoice)
           .count({ where: { tenantId } });
         const invoiceNumber = `INV-PHR-${String(invoiceCount + 1).padStart(6, "0")}`;
-        await this.db.repo(Invoice).save(
+        const savedInvoice = await this.db.repo(Invoice).save(
           this.db.repo(Invoice).create({
             tenantId,
             patientId: order.patientId,
@@ -261,7 +262,22 @@ export class PharmacyService {
             sgstAmount: String(r2(totalSgst)),
             igstAmount: "0",
             totalAmount: String(totalAmount),
+            amountPaid: String(totalAmount),
+            balanceDue: "0",
             paymentStatus: PaymentStatus.PAID,
+            paidAt: now,
+          }),
+        );
+        // Pharmacy sales are recorded paid-in-full at dispense time, not via
+        // InvoicesService/AppointmentsService confirmPayment() — write the
+        // matching ledger row directly so revenue stats (which read off
+        // InvoicePayment) still see this sale.
+        await this.db.repo(InvoicePayment).save(
+          this.db.repo(InvoicePayment).create({
+            tenantId,
+            invoiceId: savedInvoice.id,
+            amount: String(totalAmount),
+            paymentMethod: "CASH",
             paidAt: now,
           }),
         );
@@ -494,6 +510,7 @@ export class PharmacyService {
       existing?.invoiceNumber ??
       `INV-PHR-${String(invoiceCount + 1).padStart(6, "0")}`;
 
+    let pharmacyInvoiceId: string;
     if (existing) {
       await this.db.repo(Invoice).update(existing.id, {
         lineItems,
@@ -504,12 +521,15 @@ export class PharmacyService {
         sgstAmount: String(r2(totalSgst)),
         igstAmount: "0",
         totalAmount: String(totalAmount),
+        amountPaid: String(totalAmount),
+        balanceDue: "0",
         paymentStatus: PaymentStatus.PAID,
         paymentMethod: dto.paymentMethod,
         paidAt: now,
       });
+      pharmacyInvoiceId = existing.id;
     } else {
-      await this.db.repo(Invoice).save(
+      const savedInvoice = await this.db.repo(Invoice).save(
         this.db.repo(Invoice).create({
           tenantId,
           patientId: order.patientId,
@@ -524,12 +544,26 @@ export class PharmacyService {
           sgstAmount: String(r2(totalSgst)),
           igstAmount: "0",
           totalAmount: String(totalAmount),
+          amountPaid: String(totalAmount),
+          balanceDue: "0",
           paymentStatus: PaymentStatus.PAID,
           paymentMethod: dto.paymentMethod,
           paidAt: now,
         }),
       );
+      pharmacyInvoiceId = savedInvoice.id;
     }
+    // Same reasoning as the other dispense path above — write the
+    // InvoicePayment ledger row directly since this bypasses confirmPayment().
+    await this.db.repo(InvoicePayment).save(
+      this.db.repo(InvoicePayment).create({
+        tenantId,
+        invoiceId: pharmacyInvoiceId,
+        amount: String(totalAmount),
+        paymentMethod: dto.paymentMethod,
+        paidAt: now,
+      }),
+    );
 
     // Mark order dispensed
     await this.db.repo(PharmacyOrder).update(id, {

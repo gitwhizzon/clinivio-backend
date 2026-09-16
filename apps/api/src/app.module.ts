@@ -34,6 +34,7 @@ import { LabModule } from "./lab/lab.module";
 // Billing
 import { InvoicesModule } from "./invoices/invoices.module";
 import { PaymentsModule } from "./payments/payments.module";
+import { BillableServicesModule } from "./billable-services/billable-services.module";
 
 // Notifications & Messaging
 import { EmailModule } from "./email/email.module";
@@ -131,6 +132,7 @@ import { AiModule } from "./ai/ai.module";
     // ── Billing ───────────────────────────────────────────────────────────────────
     InvoicesModule,
     PaymentsModule,
+    BillableServicesModule,
 
     // ── Notifications & Messaging ─────────────────────────────────────────────────
     EmailModule,

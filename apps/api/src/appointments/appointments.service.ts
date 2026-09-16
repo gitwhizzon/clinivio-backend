@@ -5,6 +5,8 @@ import {
   ConflictException,
   Optional,
 } from "@nestjs/common";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 import { AppointmentsGateway } from "./appointments.gateway";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -12,10 +14,13 @@ import {
   DoctorSlot,
   PharmacyOrder,
   Invoice,
+  InvoicePayment,
+  Tenant,
   AppointmentStatus,
   AppointmentType,
   PaymentStatus,
   InvoiceType,
+  DiscountType,
   PharmacyOrderStatus,
   TenantEntityManager,
   In,
@@ -24,13 +29,42 @@ import { KafkaProducerService } from "../kafka/kafka-producer.service";
 import { KAFKA_TOPICS } from "@mediflow/shared";
 import { CreateAppointmentDto } from "./dto/create-appointment.dto";
 
+// Resolves a cashier-entered discount (percentage or flat) against a known
+// subtotal, clamped to [0, subtotal]. Mirrors invoices.service.ts's
+// resolveDiscountAmount, sized for this method's simpler {description,amount}
+// line-item shape (no per-item quantity/unitPrice to sum here).
+function resolveFlatDiscount(
+  subtotal: number,
+  discountType?: DiscountType,
+  discountValue?: number,
+): number {
+  if (!discountType || discountValue === undefined || discountValue === null)
+    return 0;
+  const raw =
+    discountType === DiscountType.PERCENTAGE
+      ? (subtotal * discountValue) / 100
+      : discountValue;
+  return Math.max(0, Math.min(raw, subtotal));
+}
+
 @Injectable()
 export class AppointmentsService {
   constructor(
     private readonly db: TenantEntityManager,
     private kafka: KafkaProducerService,
+    @InjectDataSource() private readonly platformDs: DataSource,
     @Optional() private readonly gateway: AppointmentsGateway | null = null,
   ) {}
+
+  private async tenantAllowsConsultBeforePayment(
+    tenantId: string,
+  ): Promise<boolean> {
+    const tenant = await this.platformDs.getRepository(Tenant).findOne({
+      where: { id: tenantId },
+      select: ["id", "allowConsultationBeforePayment"],
+    });
+    return tenant?.allowConsultationBeforePayment ?? false;
+  }
 
   private emit(
     tenantId: string,
@@ -119,6 +153,12 @@ export class AppointmentsService {
     paymentMethod: string,
     amount: number,
     razorpayPaymentId?: string,
+    options?: {
+      lineItems?: { description: string; amount: number; discount?: number }[];
+      discountType?: DiscountType;
+      discountValue?: number;
+      collectedByUserId?: string;
+    },
   ) {
     const appointment = await this.db
       .repo(Appointment)
@@ -131,59 +171,132 @@ export class AppointmentsService {
     }
 
     const now = new Date();
-    await this.db.repo(Appointment).update(id, {
-      paymentStatus: PaymentStatus.PAID,
-      paymentAmount: String(amount),
-      razorpayPaymentId: razorpayPaymentId ?? null,
-      status: AppointmentStatus.CONFIRMED,
-      confirmedAt: now,
-    });
+    // Only advance REGISTERED → CONFIRMED here. If the patient was already
+    // seen before paying (allowConsultationBeforePayment tenants), the
+    // appointment has moved past REGISTERED already — don't regress its
+    // workflow status, just clear the payment.
+    const statusUpdate =
+      appointment.status === AppointmentStatus.REGISTERED
+        ? { status: AppointmentStatus.CONFIRMED, confirmedAt: now }
+        : {};
 
-    // Create or update the consultation invoice so revenue stats are accurate
-    const existingInvoice = await this.db.repo(Invoice).findOne({
-      where: {
-        appointmentId: id,
-        tenantId,
-        invoiceType: InvoiceType.CONSULTATION,
-      },
-    });
-    if (existingInvoice) {
-      await this.db.repo(Invoice).update(existingInvoice.id, {
-        paymentStatus: PaymentStatus.PAID,
-        paymentMethod: paymentMethod ?? null,
-        paidAt: now,
-        totalAmount: String(amount),
-      });
-    } else {
-      const invoiceCount = await this.db
-        .repo(Invoice)
-        .count({ where: { tenantId } });
-      const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, "0")}`;
-      await this.db.repo(Invoice).save(
-        this.db.repo(Invoice).create({
-          tenantId,
-          patientId: appointment.patientId,
+    return this.db.transaction(async (em) => {
+      const invoiceRepo = em.getRepository(Invoice);
+      const paymentRepo = em.getRepository(InvoicePayment);
+
+      // Create or reuse the consultation invoice so revenue stats are accurate.
+      let invoice = await invoiceRepo.findOne({
+        where: {
           appointmentId: id,
-          invoiceNumber,
+          tenantId,
           invoiceType: InvoiceType.CONSULTATION,
-          lineItems: [{ description: "Consultation Fee", amount }],
-          subtotal: String(amount),
-          discountAmount: "0",
-          taxableAmount: String(amount),
-          cgstAmount: "0",
-          sgstAmount: "0",
-          igstAmount: "0",
-          totalAmount: String(amount),
-          paymentStatus: PaymentStatus.PAID,
-          paymentMethod: paymentMethod ?? null,
+        },
+      });
+
+      if (!invoice) {
+        const lineItems =
+          options?.lineItems && options.lineItems.length > 0
+            ? options.lineItems
+            : [{ description: "Consultation Fee", amount }];
+        const subtotal = lineItems.reduce((sum, li) => sum + li.amount, 0);
+        const discountAmount = resolveFlatDiscount(
+          subtotal,
+          options?.discountType,
+          options?.discountValue,
+        );
+        const totalAmount = Math.max(
+          0,
+          Math.round((subtotal - discountAmount) * 100) / 100,
+        );
+        const invoiceCount = await invoiceRepo.count({ where: { tenantId } });
+        const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, "0")}`;
+        invoice = await invoiceRepo.save(
+          invoiceRepo.create({
+            tenantId,
+            patientId: appointment.patientId,
+            appointmentId: id,
+            invoiceNumber,
+            invoiceType: InvoiceType.CONSULTATION,
+            lineItems,
+            subtotal: String(subtotal),
+            discountAmount: String(discountAmount),
+            discountType: options?.discountType ?? null,
+            discountValue:
+              options?.discountValue !== undefined
+                ? String(options.discountValue)
+                : null,
+            taxableAmount: String(totalAmount),
+            cgstAmount: "0",
+            sgstAmount: "0",
+            igstAmount: "0",
+            totalAmount: String(totalAmount),
+            amountPaid: "0",
+            balanceDue: String(totalAmount),
+            paymentStatus: PaymentStatus.PENDING,
+          }),
+        );
+      }
+
+      if (invoice.paymentStatus === PaymentStatus.PAID) {
+        throw new BadRequestException("Invoice already paid");
+      }
+
+      const balanceDue =
+        invoice.balanceDue !== null &&
+        invoice.balanceDue !== undefined &&
+        parseFloat(invoice.balanceDue) > 0
+          ? parseFloat(invoice.balanceDue)
+          : parseFloat(invoice.totalAmount) -
+            parseFloat(invoice.amountPaid ?? "0");
+      const requested =
+        amount !== undefined && amount !== null ? amount : balanceDue;
+      if (requested <= 0)
+        throw new BadRequestException(
+          "Payment amount must be greater than zero",
+        );
+      const collected = Math.min(requested, balanceDue);
+      const newAmountPaid =
+        Math.round((parseFloat(invoice.amountPaid ?? "0") + collected) * 100) /
+        100;
+      const newBalanceDue = Math.max(
+        0,
+        Math.round((balanceDue - collected) * 100) / 100,
+      );
+      const newStatus =
+        newBalanceDue <= 0.005
+          ? PaymentStatus.PAID
+          : PaymentStatus.PARTIALLY_PAID;
+
+      await invoiceRepo.update(invoice.id, {
+        paymentStatus: newStatus,
+        paymentMethod: paymentMethod ?? null,
+        razorpayPaymentId: razorpayPaymentId ?? null,
+        amountPaid: String(newAmountPaid),
+        balanceDue: String(newBalanceDue),
+        paidAt: now,
+      });
+      await paymentRepo.save(
+        paymentRepo.create({
+          tenantId,
+          invoiceId: invoice.id,
+          amount: String(Math.round(collected * 100) / 100),
+          paymentMethod,
           paidAt: now,
+          collectedByUserId: options?.collectedByUserId ?? null,
         }),
       );
-    }
 
-    return this.db.repo(Appointment).findOne({
-      where: { id },
-      relations: ["patient", "doctor", "slot", "department"],
+      await em.getRepository(Appointment).update(id, {
+        paymentStatus: newStatus,
+        paymentAmount: String(newAmountPaid),
+        razorpayPaymentId: razorpayPaymentId ?? null,
+        ...statusUpdate,
+      });
+
+      return em.getRepository(Appointment).findOne({
+        where: { id },
+        relations: ["patient", "doctor", "slot", "department"],
+      });
     });
   }
 
@@ -381,7 +494,15 @@ export class AppointmentsService {
       .repo(Appointment)
       .findOne({ where: { id, tenantId } });
     if (!appointment) throw new NotFoundException("Appointment not found");
-    if (appointment.status !== AppointmentStatus.CONFIRMED) {
+
+    const canCheckInUnpaid =
+      appointment.status === AppointmentStatus.REGISTERED &&
+      (await this.tenantAllowsConsultBeforePayment(tenantId));
+
+    if (
+      appointment.status !== AppointmentStatus.CONFIRMED &&
+      !canCheckInUnpaid
+    ) {
       throw new BadRequestException(
         "Appointment must be CONFIRMED to check in",
       );
@@ -413,16 +534,17 @@ export class AppointmentsService {
         "Only CHECKED_IN appointments can be reversed",
       );
     }
+    // Revert to wherever it came from: unpaid check-ins (allowed only for
+    // opted-in tenants) came straight from REGISTERED, not CONFIRMED.
+    const revertStatus =
+      appointment.paymentStatus === PaymentStatus.PAID
+        ? AppointmentStatus.CONFIRMED
+        : AppointmentStatus.REGISTERED;
     await this.db.repo(Appointment).update(id, {
-      status: AppointmentStatus.CONFIRMED,
+      status: revertStatus,
       checkedInAt: null as any,
     });
-    this.emit(
-      tenantId,
-      id,
-      AppointmentStatus.CONFIRMED,
-      appointment.tokenNumber,
-    );
+    this.emit(tenantId, id, revertStatus, appointment.tokenNumber);
     return this.db.repo(Appointment).findOne({
       where: { id },
       relations: ["patient", "doctor", "slot", "department"],

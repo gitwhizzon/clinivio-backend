@@ -94,6 +94,16 @@ export class Tenant {
   @Column({ name: "is_active", default: true })
   isActive: boolean;
 
+  /**
+   * When true, doctors can check in and start a consultation before the
+   * consultation fee is paid — the patient pays at the end instead. The
+   * appointment's paymentStatus stays PENDING throughout so billing/dashboard
+   * screens still surface it as payment-pending. Opt-in per hospital; most
+   * clients keep the hard pay-before-consult gate (default false).
+   */
+  @Column({ name: "allow_consult_before_payment", default: false })
+  allowConsultationBeforePayment: boolean;
+
   @Column({ nullable: true })
   phone: string | null;
 
