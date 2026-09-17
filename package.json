@@ -47,7 +47,16 @@
       "bcrypt",
       "msgpackr-extract",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "multer": ">=2.3.0",
+      "js-yaml": ">=4.3.2",
+      "tar": ">=7.5.21",
+      "lodash": ">=4.18.0",
+      "glob": ">=10.5.0",
+      "picomatch": ">=4.0.4",
+      "tmp": ">=0.2.6"
+    }
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^10.4.22",
