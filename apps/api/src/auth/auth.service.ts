@@ -116,6 +116,18 @@ export class AuthService {
         .getOne();
 
       if (user) {
+        // Once an account has linked Microsoft SSO, password login for it is
+        // permanently closed — not just hidden in the UI. A direct POST to
+        // /auth/login with the right password must not work either, since
+        // the whole point of SSO here is to gate platform admin access to
+        // the corporate Entra directory, not add a parallel unrestricted door.
+        if (user.ssoProvider) {
+          this.logger.warn(
+            `Super-admin password login rejected — account uses SSO identifier=${maskedIdentifier} userId=${user.id}`,
+          );
+          return null;
+        }
+
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) {
           this.logger.warn(
