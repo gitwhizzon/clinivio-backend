@@ -144,6 +144,58 @@ export class AuthService {
     return result;
   }
 
+  /**
+   * SSO never auto-provisions: an Entra ID login only proves who the person
+   * is at Microsoft, not that they should hold a Clinivio SUPER_ADMIN
+   * account. The row must already exist — created the same way the first
+   * platform admin was, directly against the users table.
+   */
+  async loginWithMicrosoftSso(profile: {
+    oid: string;
+    email: string | null;
+  }) {
+    const userRepo = this.platformDs.getRepository(User);
+
+    let user = await userRepo.findOne({
+      where: { ssoSubject: profile.oid, role: Role.SUPER_ADMIN, isActive: true },
+    });
+
+    if (!user && profile.email) {
+      const existing = await userRepo
+        .createQueryBuilder('user')
+        .where('LOWER(user.email) = LOWER(:email)', { email: profile.email })
+        .andWhere('user.role = :role', { role: Role.SUPER_ADMIN })
+        .andWhere('user.isActive = :isActive', { isActive: true })
+        .getOne();
+
+      if (existing) {
+        // First Microsoft sign-in for an account created the normal way —
+        // link it by stamping the stable oid so future logins match directly.
+        await userRepo.update(existing.id, {
+          ssoProvider: 'microsoft',
+          ssoSubject: profile.oid,
+        });
+        user = { ...existing, ssoProvider: 'microsoft', ssoSubject: profile.oid };
+      }
+    }
+
+    if (!user) {
+      this.logger.warn(
+        `SSO login rejected — no matching SUPER_ADMIN account for oid=${profile.oid} email=${this.maskIdentifier(profile.email ?? '')}`,
+      );
+      throw new UnauthorizedException(
+        'No matching platform admin account for this Microsoft account',
+      );
+    }
+
+    await userRepo.update(user.id, { lastLoginAt: new Date() });
+
+    this.logger.log(`SSO login success userId=${user.id} email=${this.maskIdentifier(user.email)}`);
+
+    const { passwordHash, ...result } = user;
+    return this.login(result);
+  }
+
   async login(user: any) {
     const payload: JwtPayload = {
       sub: user.id,

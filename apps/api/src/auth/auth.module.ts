@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
+import { MicrosoftSsoService, SSO_REDIS_CLIENT } from './microsoft-sso.service';
 import { EmailModule } from '../email/email.module';
 
 // TenantDataSourceRegistry + platform DataSource are provided globally by DatabaseModule
@@ -24,7 +26,25 @@ import { EmailModule } from '../email/email.module';
     }),
     EmailModule,
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    LocalStrategy,
+    MicrosoftSsoService,
+    {
+      provide: SSO_REDIS_CLIENT,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): Redis => {
+        const url = config.get<string>('redis.url');
+        if (url) return new Redis(url);
+        return new Redis({
+          host: config.get<string>('redis.host') ?? 'localhost',
+          port: config.get<number>('redis.port') ?? 6379,
+          lazyConnect: true,
+        });
+      },
+    },
+  ],
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })

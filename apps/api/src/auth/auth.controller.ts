@@ -1,15 +1,22 @@
 import {
   Controller,
   Post,
+  Get,
   Patch,
   Body,
+  Query,
+  Res,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
+  Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import {
   IsEmail,
   IsString,
@@ -19,6 +26,7 @@ import {
   ValidateIf,
 } from "class-validator";
 import { AuthService } from "./auth.service";
+import { MicrosoftSsoService } from "./microsoft-sso.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
@@ -77,10 +85,21 @@ class ResetPasswordDto {
   newPassword: string;
 }
 
+class SsoExchangeDto {
+  @IsString()
+  code: string;
+}
+
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  private readonly logger = new Logger(AuthController.name);
+
+  constructor(
+    private authService: AuthService,
+    private microsoftSsoService: MicrosoftSsoService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('login')
   @Throttle({ default: { ttl: 900000, limit: 10 } })
@@ -92,6 +111,53 @@ export class AuthController {
   })
   async login(@Body() _dto: LoginDto, @Request() req: any) {
     return this.authService.login(req.user);
+  }
+
+  // ── Microsoft Entra ID SSO — platform SUPER_ADMIN login only ────────────────
+  // Hospital staff (tenant subdomains) never hit these routes; the frontend
+  // only ever renders the "Sign in with Microsoft" link on app.megnim.com.
+
+  @Get('sso/microsoft')
+  @Throttle({ default: { ttl: 900000, limit: 20 } })
+  @ApiOperation({ summary: 'Redirect to Microsoft Entra ID for platform admin sign-in' })
+  async ssoMicrosoft(@Res() res: Response) {
+    const url = await this.microsoftSsoService.getAuthorizationUrl();
+    return res.redirect(url);
+  }
+
+  @Get('sso/microsoft/callback')
+  @Throttle({ default: { ttl: 900000, limit: 20 } })
+  @ApiOperation({ summary: 'Entra ID redirects here with the authorization code' })
+  async ssoMicrosoftCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
+    const frontendUrl = this.configService.get<string>('frontendUrl');
+    try {
+      const profile = await this.microsoftSsoService.handleCallback(code, state);
+      const authResponse = await this.authService.loginWithMicrosoftSso(profile);
+      const exchangeCode = await this.microsoftSsoService.storeExchangeCode(authResponse);
+      return res.redirect(`${frontendUrl}/sso-callback?code=${exchangeCode}`);
+    } catch (err: any) {
+      this.logger.warn(`SSO callback failed: ${err.message}`);
+      return res.redirect(`${frontendUrl}/login?error=sso_failed`);
+    }
+  }
+
+  @Post('sso/exchange')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Exchange the one-time code from the SSO callback redirect for a JWT — keeps the token out of the URL/browser history',
+  })
+  async ssoExchange(@Body() dto: SsoExchangeDto) {
+    const payload = await this.microsoftSsoService.consumeExchangeCode(dto.code);
+    if (!payload) {
+      throw new UnauthorizedException('Invalid or expired SSO exchange code');
+    }
+    return payload;
   }
 
   @Post('refresh')

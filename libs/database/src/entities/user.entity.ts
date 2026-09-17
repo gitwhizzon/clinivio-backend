@@ -70,6 +70,14 @@ export class User {
   })
   passwordResetExpiry: Date | null;
 
+  /** "microsoft" once linked via Entra ID SSO; null for password-only accounts. */
+  @Column({ name: 'sso_provider', nullable: true })
+  ssoProvider: string | null;
+
+  /** Entra ID's oid claim — the stable per-user identifier (not email, which can change). */
+  @Column({ name: 'sso_subject', nullable: true })
+  ssoSubject: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

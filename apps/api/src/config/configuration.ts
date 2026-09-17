@@ -71,6 +71,15 @@ export default () => ({
 
   sessionTtl: parseInt(process.env.SESSION_TTL ?? '86400', 10),
 
+  // Microsoft Entra ID SSO — platform SUPER_ADMIN login only, on app.megnim.com.
+  // Hospital staff login (password + subdomain) is completely untouched by this.
+  azureAd: {
+    tenantId: process.env.AZURE_AD_TENANT_ID ?? '',
+    clientId: process.env.AZURE_AD_CLIENT_ID ?? '',
+    clientSecret: process.env.AZURE_AD_CLIENT_SECRET ?? '',
+    redirectUri: process.env.AZURE_AD_REDIRECT_URI ?? '',
+  },
+
   smtp: {
     host: process.env.SMTP_HOST ?? 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT ?? '587', 10),
