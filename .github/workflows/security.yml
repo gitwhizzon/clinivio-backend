@@ -30,6 +30,9 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: pnpm audit (high + critical)
         run: pnpm audit --audit-level=high
         continue-on-error: true
@@ -42,7 +45,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # gitleaks-action now requires a paid license for org-owned repos
+      # regardless of visibility — TruffleHog OSS has no such gate.
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --results=verified,unknown
