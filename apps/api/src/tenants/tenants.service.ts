@@ -39,6 +39,18 @@ export class TenantsService {
     const tenants = await this.tenantRepo.find({
       order: { createdAt: 'DESC' },
     });
+
+    // whatsappAccessToken is select:false on the entity so it never leaks
+    // into a normal find() response — fetch it separately just to compute
+    // a boolean "is this tenant using its own token" flag, then discard it.
+    const tokenRows = await this.tenantRepo
+      .createQueryBuilder('tenant')
+      .select(['tenant.id', 'tenant.whatsappAccessToken'])
+      .getMany();
+    const hasOwnToken = new Map(
+      tokenRows.map((t) => [t.id, !!t.whatsappAccessToken]),
+    );
+
     return Promise.all(
       tenants.map(async (t) => {
         // Skip the platform tenant (slug = null) — it has no tenant schema
@@ -49,6 +61,7 @@ export class TenantsService {
             adminEmail: null,
             adminName: null,
             adminLastLogin: null,
+            hasWhatsappAccessToken: hasOwnToken.get(t.id) ?? false,
           };
         }
         try {
@@ -69,6 +82,7 @@ export class TenantsService {
               ? `${adminUser.firstName} ${adminUser.lastName}`
               : null,
             adminLastLogin: adminUser?.lastLoginAt ?? null,
+            hasWhatsappAccessToken: hasOwnToken.get(t.id) ?? false,
           };
         } catch {
           return {
@@ -77,6 +91,7 @@ export class TenantsService {
             adminEmail: null,
             adminName: null,
             adminLastLogin: null,
+            hasWhatsappAccessToken: hasOwnToken.get(t.id) ?? false,
           };
         }
       }),
@@ -116,6 +131,7 @@ export class TenantsService {
         drugLicenseNo: dto.drugLicenseNo,
         whatsappPhoneNumberId: dto.whatsappPhoneNumberId,
         wabaId: dto.wabaId,
+        whatsappAccessToken: dto.whatsappAccessToken ?? null,
         subscriptionTier: (dto.subscriptionTier as any) ?? 'BASIC',
         phone: dto.phone,
         email: dto.email,
@@ -191,9 +207,19 @@ export class TenantsService {
     if (str(data.drugLicenseNo))
       tenantPatch.drugLicenseNo = data.drugLicenseNo!;
     if (str(data.abhaHipId)) tenantPatch.abhaHipId = data.abhaHipId!;
-    if (str(data.whatsappPhoneNumberId))
-      tenantPatch.whatsappPhoneNumberId = data.whatsappPhoneNumberId!;
-    if (str(data.wabaId)) tenantPatch.wabaId = data.wabaId!;
+    if (data.clearWhatsappConfig) {
+      // Explicit removal takes priority over any whatsapp* fields sent in
+      // the same request — reverts this tenant to the platform-shared number.
+      tenantPatch.whatsappPhoneNumberId = null;
+      tenantPatch.wabaId = null;
+      tenantPatch.whatsappAccessToken = null;
+    } else {
+      if (str(data.whatsappPhoneNumberId))
+        tenantPatch.whatsappPhoneNumberId = data.whatsappPhoneNumberId!;
+      if (str(data.wabaId)) tenantPatch.wabaId = data.wabaId!;
+      if (str(data.whatsappAccessToken))
+        tenantPatch.whatsappAccessToken = data.whatsappAccessToken!;
+    }
     if (str(data.phone)) tenantPatch.phone = data.phone!;
     if (str(data.email)) tenantPatch.email = data.email!;
     if (str(data.website)) tenantPatch.website = data.website!;

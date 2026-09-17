@@ -66,6 +66,20 @@ export class UpdateTenantDto {
   @IsString()
   whatsappPhoneNumberId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() wabaId?: string;
+  @ApiPropertyOptional({
+    description:
+      'Per-tenant WhatsApp Business API access token. Omit to leave the existing token unchanged; use clearWhatsappConfig to remove it.',
+  })
+  @IsOptional()
+  @IsString()
+  whatsappAccessToken?: string;
+  @ApiPropertyOptional({
+    description:
+      'When true, removes this tenant\'s WhatsApp phone number ID, WABA ID and access token, reverting it to the platform-shared WhatsApp number. Takes priority over any whatsapp* fields sent in the same request.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  clearWhatsappConfig?: boolean;
 
   @ApiPropertyOptional({ enum: SubscriptionTier })
   @IsOptional()

@@ -41,6 +41,15 @@ export default () => ({
     accessToken: process.env.WHATSAPP_ACCESS_TOKEN ?? '',
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? 'mediflow-verify',
     appSecret: process.env.WHATSAPP_APP_SECRET ?? '',
+    // Base URL + API version are configurable because the WhatsApp Business
+    // Solution Provider can change (currently Fast2SMS, which proxies the
+    // same Graph-API-shaped endpoint Meta uses directly) without touching code.
+    apiBaseUrl:
+      process.env.WHATSAPP_API_BASE_URL ?? 'https://www.fast2sms.com/dev/whatsapp',
+    apiVersion: process.env.WHATSAPP_API_VERSION ?? 'v26.0',
+    // Fast2SMS's docs show the access token passed bare in the Authorization
+    // header (no "Bearer " prefix), unlike Meta's direct Graph API.
+    authScheme: process.env.WHATSAPP_AUTH_SCHEME ?? 'raw',
   },
 
   twilio: {

@@ -37,6 +37,12 @@ export class CreateTenantDto {
   @IsString()
   whatsappPhoneNumberId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() wabaId?: string;
+  @ApiPropertyOptional({
+    description: 'Per-tenant WhatsApp Business API access token. Omit to use the platform-shared number.',
+  })
+  @IsOptional()
+  @IsString()
+  whatsappAccessToken?: string;
   @ApiPropertyOptional({ enum: SubscriptionTier, default: 'BASIC' })
   @IsOptional()
   @IsEnum(SubscriptionTier)

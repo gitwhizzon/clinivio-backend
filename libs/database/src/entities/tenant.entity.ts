@@ -85,6 +85,15 @@ export class Tenant {
   @Column({ name: 'waba_id', nullable: true })
   wabaId: string | null;
 
+  /**
+   * Per-tenant WhatsApp Business API access token. `select: false` so
+   * ordinary find()/findOne() calls never pull it back into an API
+   * response by accident — services must .addSelect() it explicitly.
+   * Null means this tenant uses the platform-shared WhatsApp number.
+   */
+  @Column({ name: 'whatsapp_access_token', nullable: true, select: false })
+  whatsappAccessToken: string | null;
+
   @Column({
     name: 'subscription_tier',
     type: 'enum',
