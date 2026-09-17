@@ -78,6 +78,15 @@ export default () => ({
     clientId: process.env.AZURE_AD_CLIENT_ID ?? '',
     clientSecret: process.env.AZURE_AD_CLIENT_SECRET ?? '',
     redirectUri: process.env.AZURE_AD_REDIRECT_URI ?? '',
+    // Comma-separated corporate email domains (e.g. "hansvl.com") allowed to
+    // claim an existing, not-yet-linked SUPER_ADMIN seat by domain rather
+    // than an exact email match — still not auto-provisioning: a SUPER_ADMIN
+    // row must already exist and be unclaimed by a different Microsoft
+    // identity. Empty by default (exact email match only).
+    allowedEmailDomains: (process.env.AZURE_AD_ALLOWED_EMAIL_DOMAINS ?? '')
+      .split(',')
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean),
   },
 
   smtp: {

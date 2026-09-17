@@ -147,8 +147,10 @@ export class AuthService {
   /**
    * SSO never auto-provisions: an Entra ID login only proves who the person
    * is at Microsoft, not that they should hold a Clinivio SUPER_ADMIN
-   * account. The row must already exist — created the same way the first
-   * platform admin was, directly against the users table.
+   * account. A matching row must already exist — created the same way the
+   * first platform admin was, directly against the users table. This is
+   * true even for the allowed-domain fallback below: it lets a verified
+   * corporate email claim an existing, unclaimed seat, it never creates one.
    */
   async loginWithMicrosoftSso(profile: {
     oid: string;
@@ -161,21 +163,55 @@ export class AuthService {
     });
 
     if (!user && profile.email) {
-      const existing = await userRepo
+      let existing = await userRepo
         .createQueryBuilder('user')
         .where('LOWER(user.email) = LOWER(:email)', { email: profile.email })
         .andWhere('user.role = :role', { role: Role.SUPER_ADMIN })
         .andWhere('user.isActive = :isActive', { isActive: true })
         .getOne();
 
+      // No exact email match — if this Microsoft account is on an allowed
+      // corporate domain, let it claim an existing SUPER_ADMIN seat that no
+      // other Microsoft identity has linked yet (e.g. a placeholder-email
+      // admin row created before real emails were known).
+      if (!existing) {
+        const emailDomain = profile.email.split('@')[1]?.toLowerCase();
+        const allowedDomains = this.configService.get<string[]>(
+          'azureAd.allowedEmailDomains',
+        ) ?? [];
+
+        if (emailDomain && allowedDomains.includes(emailDomain)) {
+          existing = await userRepo
+            .createQueryBuilder('user')
+            .where('user.role = :role', { role: Role.SUPER_ADMIN })
+            .andWhere('user.isActive = :isActive', { isActive: true })
+            .andWhere('user.ssoSubject IS NULL')
+            .orderBy('user.createdAt', 'ASC')
+            .getOne();
+
+          if (existing) {
+            this.logger.log(
+              `SSO claiming unlinked SUPER_ADMIN seat ${existing.id} via allowed domain ${emailDomain}`,
+            );
+          }
+        }
+      }
+
       if (existing) {
-        // First Microsoft sign-in for an account created the normal way —
-        // link it by stamping the stable oid so future logins match directly.
+        // First Microsoft sign-in for this seat — link it by stamping the
+        // stable oid (and the real email, for the domain-fallback case where
+        // the row still held a placeholder) so future logins match directly.
         await userRepo.update(existing.id, {
           ssoProvider: 'microsoft',
           ssoSubject: profile.oid,
+          email: profile.email,
         });
-        user = { ...existing, ssoProvider: 'microsoft', ssoSubject: profile.oid };
+        user = {
+          ...existing,
+          ssoProvider: 'microsoft',
+          ssoSubject: profile.oid,
+          email: profile.email,
+        };
       }
     }
 
