@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
 import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 import { RequestIdMiddleware } from '../middleware/request-id.middleware';
+import { isAllowedPlatformOrigin } from '../security/allowed-origin';
 
 export interface BootstrapOptions {
   serviceName: string;
@@ -36,25 +37,49 @@ export async function bootstrapApp(
   );
 
   // ── CORS ────────────────────────────────────────────────────────────────────
-  const origins = opts.allowedOrigins?.length
+  // Every tenant gets its own subdomain (e.g. sndental.megnim.com), so CORS
+  // can't be a fixed per-origin allowlist — it has to trust any subdomain of
+  // the platform's base domain(s) while still rejecting look-alike origins
+  // (see allowed-origin.ts for the specific spoofing patterns this blocks).
+  // ALLOWED_ORIGINS stays as an explicit exact-match escape hatch for things
+  // that aren't under the platform domain at all (e.g. a Vercel preview URL).
+  const explicitOrigins = opts.allowedOrigins?.length
     ? opts.allowedOrigins
-    : (process.env.ALLOWED_ORIGINS ?? 'https://clinivio-frontend.vercel.app')
+    : (process.env.ALLOWED_ORIGINS ?? '')
         .split(',')
-        .map((s) => s.trim());
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  const platformDomains = (process.env.PLATFORM_DOMAINS ?? 'clinivio.ai,whizzon.ai')
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
 
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // Allow requests with no origin (mobile apps, Postman, same-origin)
+      // No Origin header at all means this isn't a browser CORS request
+      // (server-to-server calls, curl, mobile apps, same-origin) — CORS is
+      // a browser-enforced mechanism, so there's nothing to restrict here.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        callback(null, true); // dev/test convenience
+        return;
+      }
+
       if (
-        !origin ||
-        origins.includes(origin) ||
-        process.env.NODE_ENV !== 'production'
+        explicitOrigins.includes(origin) ||
+        isAllowedPlatformOrigin(origin, platformDomains)
       ) {
         callback(null, true);
       } else {
+        logger.warn(`CORS: rejected origin ${origin}`);
         callback(new Error(`CORS: Origin ${origin} not allowed`));
       }
     },
