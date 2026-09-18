@@ -49,14 +49,14 @@ export class EmailService {
 <body style="font-family:system-ui,sans-serif;background:#f4f7fb;margin:0;padding:32px 0">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)">
     <div style="background:linear-gradient(135deg,#4f46e5,#3b82f6);padding:28px 36px">
-      <p style="color:#fff;font-size:22px;font-weight:700;margin:0">Clinivio</p>
+      <p style="color:#fff;font-size:22px;font-weight:700;margin:0">Megnim</p>
       <p style="color:rgba(255,255,255,.8);font-size:13px;margin:4px 0 0">Hospital Management Platform</p>
     </div>
     <div style="padding:32px 36px">
       <h2 style="color:#1e293b;font-size:18px;margin:0 0 12px">Password Reset Request</h2>
       <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px">
         Hi ${firstName},<br><br>
-        We received a request to reset your Clinivio account password.
+        We received a request to reset your Megnim account password.
         Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
       </p>
       <a href="${resetUrl}"
@@ -70,13 +70,13 @@ export class EmailService {
       </p>
     </div>
     <div style="background:#f8fafc;padding:16px 36px;border-top:1px solid #e2e8f0">
-      <p style="color:#94a3b8;font-size:11px;margin:0">© ${new Date().getFullYear()} Clinivio by Whizzon.ai · All activity is logged</p>
+      <p style="color:#94a3b8;font-size:11px;margin:0">© ${new Date().getFullYear()} Megnim by Whizzon.ai · All activity is logged</p>
     </div>
   </div>
 </body>
 </html>`;
 
-    const text = `Hi ${firstName},\n\nWe received a request to reset your Clinivio account password.\n\nReset your password here (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, ignore this email.\n\n— Clinivio`;
+    const text = `Hi ${firstName},\n\nWe received a request to reset your Megnim account password.\n\nReset your password here (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, ignore this email.\n\n— Megnim`;
 
     return { html, text };
   }

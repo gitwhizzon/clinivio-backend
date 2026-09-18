@@ -458,7 +458,7 @@ export class PatientPortalService {
         await client.messages.create({
           to: dto.phone,
           from,
-          body: `Your Clinivio OTP is ${otp}. Valid for 10 minutes. Do not share this with anyone.`,
+          body: `Your Megnim OTP is ${otp}. Valid for 10 minutes. Do not share this with anyone.`,
         });
       } catch (err: any) {
         this.logger.error('[OTP] Twilio send failed:', err?.message);

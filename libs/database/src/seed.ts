@@ -5,7 +5,7 @@
  *   pnpm db:seed
  *
  * Creates / updates:
- *   - Clinivio Platform tenant + SUPER_ADMIN in public schema only.
+ *   - Megnim Platform tenant + SUPER_ADMIN in public schema only.
  *
  * No sample hospital tenants are seeded — onboard real hospitals through the
  * SuperAdmin UI at /hospitals after logging in with superadmin@whizzon.ai.
@@ -80,9 +80,9 @@ async function main() {
   const tenantRepo = platformDs.getRepository(Tenant);
   const platformUserRepo = platformDs.getRepository(User);
 
-  // ── Clinivio Platform tenant (public schema) ──────────────────────────────
+  // ── Megnim Platform tenant (public schema) ──────────────────────────────
   await upsertTenant(tenantRepo, PLATFORM_TENANT_ID, {
-    name: 'Clinivio Platform',
+    name: 'Megnim Platform',
     subscriptionTier: SubscriptionTier.ENTERPRISE,
     isActive: true,
   });

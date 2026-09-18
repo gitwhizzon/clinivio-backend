@@ -75,7 +75,7 @@ export class NotificationsService {
         // EMAIL jobs: pass subject/html from payload if provided
         ...(dto.channel === NotificationChannel.EMAIL && {
           to: dto.email,
-          subject: dto.payload['subject'] ?? 'Notification from Clinivio',
+          subject: dto.payload['subject'] ?? 'Notification from Megnim',
           html: dto.payload['html'] ?? '',
           text: dto.payload['text'],
         }),
@@ -168,7 +168,7 @@ export class NotificationsService {
         payload: dto.payload,
         ...(dto.channel === NotificationChannel.EMAIL && {
           to: dto.email,
-          subject: dto.payload['subject'] ?? 'Notification from Clinivio',
+          subject: dto.payload['subject'] ?? 'Notification from Megnim',
           html: dto.payload['html'] ?? '',
           text: dto.payload['text'],
         }),

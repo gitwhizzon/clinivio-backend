@@ -8,7 +8,7 @@ import { TenantDataSourceRegistry, Tenant } from '@mediflow/database';
  * TenantContextMiddleware
  *
  * Runs on every request. Extracts the tenant slug from:
- *  1. The subdomain: `hansvl.clinivio.ai` → slug = "hansvl"
+ *  1. The subdomain: `hansvl.megnim.com` → slug = "hansvl"
  *  2. The `X-Tenant-Slug` header (useful for local development on localhost)
  *
  * If a matching active tenant is found, wraps the rest of the request
@@ -70,9 +70,9 @@ export class TenantContextMiddleware implements NestMiddleware {
     }
 
     // 2. Subdomain: only extract a tenant slug when the request comes in on a
-    //    known Clinivio platform domain.
+    //    known Megnim platform domain.
     //
-    //    ✓  hansvl.clinivio.ai          →  slug = "hansvl"
+    //    ✓  hansvl.megnim.com          →  slug = "hansvl"
     //    ✓  apollo.whizzon.ai           →  slug = "apollo"
     //    ✗  clinivio-backend.onrender.com  →  ignored (Render direct URL)
     //    ✗  clinivio-frontend.vercel.app   →  ignored (Vercel preview URL)

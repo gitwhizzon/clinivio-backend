@@ -1,5 +1,5 @@
 /**
- * Clinivio API Smoke Test
+ * Megnim API Smoke Test
  * ─────────────────────────────────────────────────────────────
  * Run after any backend fix to verify all role features work and API
  * response shapes match what the frontend expects.
@@ -419,7 +419,7 @@ async function suiteReceptionist(api: AxiosInstance) {
 async function main() {
   const start = Date.now();
   console.log();
-  console.log(c.bold('🔬 Clinivio API Smoke Test'));
+  console.log(c.bold('🔬 Megnim API Smoke Test'));
   console.log(c.dim(`   ${BASE}  ·  tenant: ${SLUG || '(from JWT)'}`));
   console.log(c.dim('─'.repeat(55)));
 

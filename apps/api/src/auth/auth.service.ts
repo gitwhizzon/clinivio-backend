@@ -165,7 +165,7 @@ export class AuthService {
 
   /**
    * SSO never auto-provisions: an Entra ID login only proves who the person
-   * is at Microsoft, not that they should hold a Clinivio SUPER_ADMIN
+   * is at Microsoft, not that they should hold a Megnim SUPER_ADMIN
    * account. A matching row must already exist — created the same way the
    * first platform admin was, directly against the users table. This is
    * true even for the allowed-domain fallback below: it lets a verified
@@ -380,7 +380,7 @@ export class AuthService {
 
     await this.emailService.sendMail({
       to: user.email,
-      subject: 'Reset your Clinivio password',
+      subject: 'Reset your Megnim password',
       html,
       text,
     });

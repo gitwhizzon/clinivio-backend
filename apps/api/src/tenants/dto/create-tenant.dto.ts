@@ -15,7 +15,7 @@ export class CreateTenantDto {
   /**
    * URL-safe slug used as the hospital's subdomain identifier.
    * If omitted, auto-generated from `name` (lowercased, non-alphanumeric → hyphens).
-   * Example: "hansvl" → hansvl.clinivio.ai (all hospitals share one database schema,
+   * Example: "hansvl" → hansvl.megnim.com (all hospitals share one database schema,
    * rows are scoped by tenantId — the slug is not a schema name).
    */
   @ApiPropertyOptional({ example: 'hansvl' })
