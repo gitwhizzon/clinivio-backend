@@ -65,9 +65,16 @@ export class AuthService {
           `Resolved tenant for login slug=${tenant.slug} tenantId=${tenant.id}`,
         );
       } else {
+        // A tenant/slug was explicitly given (e.g. any subdomain of
+        // megnim.com resolves and sends its slug automatically) but doesn't
+        // match a real, active tenant — reject outright. Falling through to
+        // the platform SUPER_ADMIN lookup below would let a request on any
+        // nonexistent hospital subdomain silently attempt a platform-admin
+        // login, which has nothing to do with what the user asked for.
         this.logger.warn(
-          `Login tenant resolution failed identifier=${maskedIdentifier} tenantId=${tenantId ?? "none"} slug=${slug ?? "none"}`,
+          `Login rejected — unknown tenant identifier=${maskedIdentifier} tenantId=${tenantId ?? "none"} slug=${slug ?? "none"}`,
         );
+        return null;
       }
     }
 
