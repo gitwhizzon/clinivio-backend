@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
@@ -229,8 +230,36 @@ export class UsersService {
     return this.findById(id, tenantId);
   }
 
-  async update(id: string, tenantId: string, dto: UpdateUserDto) {
+  async update(
+    id: string,
+    tenantId: string,
+    dto: UpdateUserDto,
+    caller: { id: string; role: Role },
+  ) {
     const user = await this.findById(id, tenantId);
+
+    const isAdmin = caller.role === Role.ADMIN || caller.role === Role.SUPER_ADMIN;
+    const isSelf = caller.id === id;
+
+    // Any authenticated staff member could otherwise PATCH any other user in
+    // the same tenant — including their password and isActive flag. Only an
+    // ADMIN may edit someone else's account; everyone else may only edit
+    // their own profile fields.
+    if (!isSelf && !isAdmin) {
+      throw new ForbiddenException("You can only update your own profile");
+    }
+
+    // Self-service edits (any role, including ADMIN editing themselves) may
+    // never change password or isActive through this generic endpoint:
+    // password changes must go through /auth/change-password, which verifies
+    // the current password first — this route has no such check, so allowing
+    // it here would be a strictly weaker path to the same result. isActive
+    // is an account-lifecycle control, not a self-service profile field.
+    if (isSelf && (dto.password !== undefined || dto.isActive !== undefined)) {
+      throw new ForbiddenException(
+        "Use the change-password endpoint to change your own password; isActive can only be changed by an admin for another user's account",
+      );
+    }
 
     if (dto.email && dto.email !== user.email) {
       const conflict = await this.db

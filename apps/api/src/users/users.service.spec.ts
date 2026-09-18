@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService, CreateUserDto } from './users.service';
 import {
@@ -258,6 +262,123 @@ describe('UsersService', () => {
         staffId: 'NRS0001',
       });
       expect(result.staffId).toBe('NRS0001');
+    });
+  });
+
+  // ── update — authorization (regression coverage for a real privilege-
+  //    escalation bug: any authenticated role could previously PATCH any
+  //    other user in the tenant, including their password/isActive) ─────────
+
+  describe('update — authorization', () => {
+    const targetUser = {
+      id: 'target-user',
+      tenantId: TENANT_ID,
+      email: 'target@acme.com',
+      role: Role.ADMIN,
+    };
+
+    it('throws ForbiddenException when a non-admin tries to update someone else', async () => {
+      userRepoMock.findOne.mockResolvedValueOnce(targetUser);
+
+      await expect(
+        service.update(
+          'target-user',
+          TENANT_ID,
+          { firstName: 'Hacked' },
+          { id: 'nurse-user', role: Role.NURSE },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(userRepoMock.update).not.toHaveBeenCalled();
+    });
+
+    it("throws ForbiddenException when a user tries to change their own password via this endpoint", async () => {
+      userRepoMock.findOne.mockResolvedValueOnce({
+        ...targetUser,
+        id: 'nurse-user',
+        role: Role.NURSE,
+      });
+
+      await expect(
+        service.update(
+          'nurse-user',
+          TENANT_ID,
+          { password: 'NewPassword123' },
+          { id: 'nurse-user', role: Role.NURSE },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(userRepoMock.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenException when a user tries to change their own isActive flag', async () => {
+      userRepoMock.findOne.mockResolvedValueOnce({
+        ...targetUser,
+        id: 'nurse-user',
+        role: Role.NURSE,
+      });
+
+      await expect(
+        service.update(
+          'nurse-user',
+          TENANT_ID,
+          { isActive: false },
+          { id: 'nurse-user', role: Role.NURSE },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a non-admin to update their own non-restricted profile fields', async () => {
+      userRepoMock.findOne.mockResolvedValueOnce({
+        ...targetUser,
+        id: 'nurse-user',
+        role: Role.NURSE,
+      });
+
+      await service.update(
+        'nurse-user',
+        TENANT_ID,
+        { firstName: 'NewName' },
+        { id: 'nurse-user', role: Role.NURSE },
+      );
+
+      expect(userRepoMock.update).toHaveBeenCalledWith('nurse-user', {
+        firstName: 'NewName',
+      });
+    });
+
+    it("allows an ADMIN to update another user's password and isActive", async () => {
+      userRepoMock.findOne.mockResolvedValueOnce(targetUser);
+      const hashSpy = jest
+        .spyOn(bcrypt, 'hash')
+        .mockResolvedValue('hashed-password' as never);
+
+      await service.update(
+        'target-user',
+        TENANT_ID,
+        { password: 'ResetByAdmin123', isActive: false },
+        { id: 'admin-user', role: Role.ADMIN },
+      );
+
+      expect(userRepoMock.update).toHaveBeenCalledWith('target-user', {
+        isActive: false,
+        passwordHash: 'hashed-password',
+      });
+      hashSpy.mockRestore();
+    });
+
+    it("throws ForbiddenException when an admin tries to change their own password via this endpoint", async () => {
+      userRepoMock.findOne.mockResolvedValueOnce({
+        ...targetUser,
+        id: 'admin-user',
+      });
+
+      await expect(
+        service.update(
+          'admin-user',
+          TENANT_ID,
+          { password: 'SelfReset123' },
+          { id: 'admin-user', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

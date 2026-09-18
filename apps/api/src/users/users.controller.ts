@@ -12,7 +12,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard, Roles, TenantId } from '@mediflow/shared';
+import { RolesGuard, Roles, TenantId, CurrentUser } from '@mediflow/shared';
+import type { JwtPayload } from '@mediflow/shared';
 import { Role } from '@mediflow/database';
 import { UsersService, CreateUserDto, UpdateUserDto } from './users.service';
 
@@ -82,7 +83,11 @@ export class UsersController {
     @Param('id') id: string,
     @TenantId() tenantId: string,
     @Body() dto: UpdateUserDto,
+    @CurrentUser() currentUser: JwtPayload,
   ) {
-    return this.svc.update(id, tenantId, dto);
+    return this.svc.update(id, tenantId, dto, {
+      id: currentUser.sub,
+      role: currentUser.role as Role,
+    });
   }
 }
