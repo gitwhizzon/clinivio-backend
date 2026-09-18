@@ -18,6 +18,7 @@ import {
   ALL_ENTITIES,
 } from '@mediflow/database';
 import { RESERVED_TENANT_SLUGS } from '@mediflow/shared';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 
@@ -29,6 +30,7 @@ export class TenantsService {
     @InjectRepository(Tenant) private tenantRepo: Repository<Tenant>,
     @InjectDataSource() private readonly platformDs: DataSource,
     private readonly registry: TenantDataSourceRegistry,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   // ── Queries ────────────────────────────────────────────────────────────────
@@ -104,6 +106,96 @@ export class TenantsService {
     const tenant = await this.tenantRepo.findOne({ where: { id } });
     if (!tenant) throw new NotFoundException('Tenant not found');
     return tenant;
+  }
+
+  /**
+   * Runs a handful of cheap, read-only checks against a freshly-onboarded
+   * tenant so a problem (subdomain not resolving yet, WhatsApp credentials
+   * that don't actually work) surfaces immediately instead of the first
+   * time the hospital's own staff try to use it. Nothing here is
+   * destructive and nothing sends a real message — verifyCredentials() is
+   * a read-only GET against the phone number's own resource.
+   */
+  async verifySetup(id: string) {
+    const tenant = await this.findById(id);
+
+    const adminCount = tenant.slug
+      ? await this.platformDs.getRepository(User).count({
+          where: { tenantId: tenant.id, role: Role.ADMIN, isActive: true },
+        })
+      : 0;
+
+    const checks: { name: string; status: 'ok' | 'warn' | 'fail'; detail: string }[] = [];
+
+    checks.push({
+      name: 'Tenant active',
+      status: tenant.isActive ? 'ok' : 'fail',
+      detail: tenant.isActive ? 'Tenant is active' : 'Tenant is marked inactive',
+    });
+
+    checks.push({
+      name: 'Admin account',
+      status: adminCount > 0 ? 'ok' : 'fail',
+      detail:
+        adminCount > 0
+          ? `${adminCount} active ADMIN account(s)`
+          : 'No active ADMIN account for this tenant — staff cannot log in yet',
+    });
+
+    if (tenant.slug) {
+      const domain = this.primaryPlatformDomain();
+      const hostname = `${tenant.slug}.${domain}`;
+      try {
+        const dns = await import('dns');
+        await dns.promises.resolve(hostname);
+        checks.push({
+          name: 'Subdomain DNS',
+          status: 'ok',
+          detail: `${hostname} resolves`,
+        });
+      } catch {
+        checks.push({
+          name: 'Subdomain DNS',
+          status: 'warn',
+          detail: `${hostname} does not resolve yet — expected until the *.${domain} wildcard domain is set up; not an application problem`,
+        });
+      }
+    }
+
+    if (tenant.whatsappPhoneNumberId) {
+      const tenantWithToken = await this.tenantRepo
+        .createQueryBuilder('tenant')
+        .addSelect('tenant.whatsappAccessToken')
+        .where('tenant.id = :id', { id })
+        .getOne();
+
+      const result = await this.whatsappService.verifyCredentials({
+        phoneNumberId: tenant.whatsappPhoneNumberId,
+        accessToken: tenantWithToken?.whatsappAccessToken ?? undefined,
+      });
+      checks.push({
+        name: 'WhatsApp (own number)',
+        status: result.ok ? 'ok' : 'fail',
+        detail: result.detail,
+      });
+    } else {
+      const result = await this.whatsappService.verifyCredentials();
+      checks.push({
+        name: 'WhatsApp (platform-shared number)',
+        status: result.ok ? 'ok' : 'warn',
+        detail: result.ok
+          ? 'Using the shared platform WhatsApp number — verified working'
+          : `Using the shared platform WhatsApp number, but it isn't configured/working either: ${result.detail}`,
+      });
+    }
+
+    const overall = checks.some((c) => c.status === 'fail')
+      ? 'fail'
+      : checks.some((c) => c.status === 'warn')
+        ? 'warn'
+        : 'ok';
+
+    return { tenantId: id, overall, checks };
   }
 
   // ── Mutations ──────────────────────────────────────────────────────────────

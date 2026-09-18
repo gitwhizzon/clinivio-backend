@@ -8,6 +8,13 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { TenantsService } from './tenants.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+
+// verifySetup() does a real DNS lookup for the tenant's subdomain — mock it
+// so tests are deterministic and don't depend on network access.
+jest.mock('dns', () => ({
+  promises: { resolve: jest.fn().mockResolvedValue(['1.2.3.4']) },
+}));
 import {
   Tenant,
   User,
@@ -41,6 +48,7 @@ describe('TenantsService', () => {
   };
   let registryMock: { getOrCreate: jest.Mock; evict: jest.Mock };
   let tenantDsMock: { getRepository: jest.Mock };
+  let whatsappServiceMock: { verifyCredentials: jest.Mock };
 
   beforeEach(async () => {
     tenantRepoMock = makeRepo();
@@ -66,12 +74,19 @@ describe('TenantsService', () => {
       evict: jest.fn(),
     };
 
+    whatsappServiceMock = {
+      verifyCredentials: jest
+        .fn()
+        .mockResolvedValue({ ok: true, detail: 'Credentials verified' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TenantsService,
         { provide: getRepositoryToken(Tenant), useValue: tenantRepoMock },
         { provide: getDataSourceToken(), useValue: platformDsMock },
         { provide: TenantDataSourceRegistry, useValue: registryMock },
+        { provide: WhatsappService, useValue: whatsappServiceMock },
       ],
     }).compile();
 
@@ -361,6 +376,72 @@ describe('TenantsService', () => {
       const second = await service.resetAdminPassword('t1');
 
       expect(first.temporaryPassword).not.toBe(second.temporaryPassword);
+    });
+  });
+
+  // ── verifySetup ────────────────────────────────────────────────────────────
+
+  describe('verifySetup', () => {
+    const activeTenant = {
+      id: 't1',
+      slug: 'acme',
+      isActive: true,
+      whatsappPhoneNumberId: null,
+    };
+
+    it('reports overall "fail" when the tenant has no active admin account', async () => {
+      tenantRepoMock.findOne.mockResolvedValueOnce(activeTenant);
+      userRepoMock.count.mockResolvedValueOnce(0);
+
+      const result = await service.verifySetup('t1');
+
+      expect(result.overall).toBe('fail');
+      const adminCheck = result.checks.find((c) => c.name === 'Admin account');
+      expect(adminCheck?.status).toBe('fail');
+    });
+
+    it('reports overall "fail" when the tenant itself is inactive', async () => {
+      tenantRepoMock.findOne.mockResolvedValueOnce({
+        ...activeTenant,
+        isActive: false,
+      });
+      userRepoMock.count.mockResolvedValueOnce(1);
+
+      const result = await service.verifySetup('t1');
+
+      expect(result.overall).toBe('fail');
+    });
+
+    it('reports overall "ok" when tenant is active, has an admin, and WhatsApp verifies', async () => {
+      tenantRepoMock.findOne.mockResolvedValueOnce(activeTenant);
+      userRepoMock.count.mockResolvedValueOnce(1);
+
+      const result = await service.verifySetup('t1');
+
+      expect(result.overall).toBe('ok');
+      expect(whatsappServiceMock.verifyCredentials).toHaveBeenCalled();
+    });
+
+    it("uses the tenant's own WhatsApp credentials when configured, not the platform-shared ones", async () => {
+      tenantRepoMock.findOne.mockResolvedValueOnce({
+        ...activeTenant,
+        whatsappPhoneNumberId: 'own-phone-id',
+      });
+      userRepoMock.count.mockResolvedValueOnce(1);
+      (tenantRepoMock as any).createQueryBuilder = jest.fn().mockReturnValue({
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest
+          .fn()
+          .mockResolvedValue({ whatsappAccessToken: 'own-secret-token' }),
+      });
+
+      await service.verifySetup('t1');
+
+      expect(whatsappServiceMock.verifyCredentials).toHaveBeenCalledWith({
+        phoneNumberId: 'own-phone-id',
+        accessToken: 'own-secret-token',
+      });
     });
   });
 });

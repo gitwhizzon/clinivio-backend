@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Patient,
   PatientFamily,
   Consultation,
   LabOrder,
+  Tenant,
+  NotificationChannel,
   TenantEntityManager,
   ILike,
   In,
@@ -12,6 +16,7 @@ import {
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { KafkaProducerService } from '../kafka/kafka-producer.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { KAFKA_TOPICS } from '@mediflow/shared';
 
 const PATIENT_SELECT: (keyof Patient)[] = [
@@ -44,6 +49,8 @@ export class PatientsService {
   constructor(
     private readonly db: TenantEntityManager,
     private kafka: KafkaProducerService,
+    private notificationsService: NotificationsService,
+    @InjectDataSource() private readonly platformDs: DataSource,
   ) {}
 
   private async generateUHID(tenantId: string): Promise<string> {
@@ -121,6 +128,32 @@ export class PatientsService {
         preferredLanguage: patient.preferredLanguage,
       },
     });
+
+    if (patient.hasWhatsapp && patient.whatsappPhone) {
+      const tenant = await this.platformDs
+        .getRepository(Tenant)
+        .findOne({ where: { id: tenantId }, select: ['id', 'name'] });
+
+      await this.notificationsService.create(tenantId, {
+        patientId: patient.id,
+        phone: patient.whatsappPhone,
+        channel: NotificationChannel.WHATSAPP,
+        notificationType: 'PATIENT_REGISTRATION_CONFIRMED',
+        payload: {
+          to: patient.whatsappPhone,
+          data: {
+            patientName: `${patient.firstName} ${patient.lastName ?? ''}`.trim(),
+            hospitalName: tenant?.name ?? 'your hospital',
+            uhid: patient.uhid,
+            date: new Date().toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            }),
+          },
+        },
+      });
+    }
 
     return patient;
   }

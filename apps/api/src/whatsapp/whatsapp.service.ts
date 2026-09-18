@@ -54,6 +54,36 @@ export class WhatsappService {
     return `${this.apiBaseUrl}/${this.apiVersion}/${id}/messages`;
   }
 
+  /** Read-only GET on the phone number's own resource — the cheapest way to
+   * confirm a phoneNumberId/accessToken pair is actually valid without
+   * sending a real message. Used by the tenant setup-verification check. */
+  private phoneNumberUrl(phoneNumberId?: string): string {
+    const id = phoneNumberId || this.phoneNumberId;
+    return `${this.apiBaseUrl}/${this.apiVersion}/${id}`;
+  }
+
+  async verifyCredentials(
+    credentials?: WhatsappCredentials,
+  ): Promise<{ ok: boolean; detail: string }> {
+    const phoneNumberId = credentials?.phoneNumberId || this.phoneNumberId;
+    const accessToken = credentials?.accessToken || this.accessToken;
+    if (!phoneNumberId || !accessToken) {
+      return { ok: false, detail: 'No WhatsApp phoneNumberId/accessToken configured' };
+    }
+    try {
+      await axios.get(this.phoneNumberUrl(credentials?.phoneNumberId), {
+        headers: { Authorization: this.authHeader(credentials?.accessToken) },
+        timeout: 8000,
+      });
+      return { ok: true, detail: 'Credentials verified' };
+    } catch (err: any) {
+      const detail = err.response?.data
+        ? JSON.stringify(err.response.data)
+        : err.message;
+      return { ok: false, detail };
+    }
+  }
+
   private mediaUrl(phoneNumberId?: string): string {
     const id = phoneNumberId || this.phoneNumberId;
     return `${this.apiBaseUrl}/${this.apiVersion}/${id}/media`;

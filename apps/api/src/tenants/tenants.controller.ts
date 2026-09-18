@@ -93,6 +93,16 @@ export class TenantsController {
     return this.tenantsService.resetAdminPassword(id);
   }
 
+  @Get(':id/verify-setup')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({
+    summary:
+      'Run read-only checks (active status, admin account, subdomain DNS, WhatsApp credentials) so a problem shows up before the hospital starts using it',
+  })
+  verifySetup(@Param('id') id: string) {
+    return this.tenantsService.verifySetup(id);
+  }
+
   @Patch(':id/deactivate')
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Deactivate a tenant (soft disable, keeps data)' })
