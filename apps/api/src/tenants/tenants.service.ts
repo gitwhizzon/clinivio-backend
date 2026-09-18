@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +17,7 @@ import {
   TenantDataSourceRegistry,
   ALL_ENTITIES,
 } from '@mediflow/database';
+import { RESERVED_TENANT_SLUGS } from '@mediflow/shared';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 
@@ -112,13 +114,28 @@ export class TenantsService {
       ? dto.slug.toLowerCase()
       : this.generateSlug(dto.name);
 
-    // 2. Ensure uniqueness
+    // 2. Reject a slug that collides with a reserved platform subdomain
+    // (app/api/www/admin.megnim.com) — both the frontend and the backend's
+    // own TenantContextMiddleware treat those as platform-only *before*
+    // ever checking whether a tenant exists, so a tenant created with one
+    // of these slugs would be silently, permanently unreachable at its own
+    // subdomain. Must be caught here, at creation time — there's no way to
+    // detect or fix it later from the outside.
+    if ((RESERVED_TENANT_SLUGS as readonly string[]).includes(slug)) {
+      throw new BadRequestException(
+        dto.slug
+          ? `Slug '${slug}' is reserved for the platform and can't be used for a hospital. Please choose a different Hospital ID.`
+          : `Hospital name generates the reserved slug '${slug}'. Please provide a Hospital ID manually.`,
+      );
+    }
+
+    // 3. Ensure uniqueness
     const existing = await this.tenantRepo.findOne({ where: { slug } });
     if (existing) {
       throw new ConflictException(`Tenant slug '${slug}' is already taken`);
     }
 
-    // 3. Persist tenant record in platform (public) schema
+    // 4. Persist tenant record in platform (public) schema
     const tenant = await this.tenantRepo.save(
       this.tenantRepo.create({
         name: dto.name,
@@ -140,14 +157,14 @@ export class TenantsService {
         tagline: dto.tagline,
         printHeader: dto.printHeader,
         pharmacyName: dto.pharmacyName,
-        portalUrl: dto.portalUrl ?? `https://${slug}.clinivio.ai`,
+        portalUrl: dto.portalUrl ?? `https://${slug}.${this.primaryPlatformDomain()}`,
       }),
     );
 
-    // 4. All hospitals share the platform DataSource — no per-tenant schema.
+    // 5. All hospitals share the platform DataSource — no per-tenant schema.
     const tenantDs = await this.registry.getOrCreate(tenant.id, slug);
 
-    // 5. Seed the admin user, scoped by tenantId
+    // 6. Seed the admin user, scoped by tenantId
     const passwordHash = await bcrypt.hash(dto.adminPassword, 12);
     const admin = await tenantDs.getRepository(User).save(
       tenantDs.getRepository(User).create({
@@ -356,6 +373,17 @@ export class TenantsService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 63);
+  }
+
+  /** First entry in PLATFORM_DOMAINS — same env var TenantContextMiddleware
+   * uses for subdomain routing, so the default portal URL always points at
+   * a domain that actually resolves to this platform. */
+  private primaryPlatformDomain(): string {
+    const first = (process.env.PLATFORM_DOMAINS ?? 'megnim.com')
+      .split(',')[0]
+      ?.trim()
+      .toLowerCase();
+    return first || 'megnim.com';
   }
 
   private generateSecurePassword(): string {

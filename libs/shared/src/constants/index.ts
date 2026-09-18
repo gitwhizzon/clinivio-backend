@@ -1,3 +1,13 @@
+/**
+ * Subdomains that are always the platform host (app.megnim.com,
+ * api.megnim.com, ...), never a tenant. Must stay in sync with the
+ * frontend's PLATFORM_SUBDOMAINS in lib/tenant.ts (separate repo, can't
+ * share this constant directly) — this copy is the one that matters for
+ * blocking a colliding tenant slug at onboarding time, since that's the
+ * only point where creating one is actually preventable.
+ */
+export const RESERVED_TENANT_SLUGS = ['www', 'admin', 'api', 'app'] as const;
+
 export enum KAFKA_TOPICS {
   PATIENT_REGISTERED = 'mediflow.patient.registered',
   APPOINTMENT_BOOKED = 'mediflow.appointment.booked',

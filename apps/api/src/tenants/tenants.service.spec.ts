@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { TenantsService } from './tenants.service';
@@ -117,13 +118,28 @@ describe('TenantsService', () => {
       expect(registryMock.getOrCreate).not.toHaveBeenCalled();
     });
 
-    it('defaults portalUrl to https://<slug>.clinivio.ai when not provided', async () => {
+    it('rejects an explicit slug that collides with a reserved platform subdomain', async () => {
+      await expect(
+        service.create({ ...baseDto, slug: 'app' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(tenantRepoMock.findOne).not.toHaveBeenCalled();
+      expect(registryMock.getOrCreate).not.toHaveBeenCalled();
+    });
+
+    it('rejects an auto-generated slug that collides with a reserved platform subdomain', async () => {
+      await expect(
+        service.create({ ...baseDto, name: 'API', slug: undefined }),
+      ).rejects.toThrow(BadRequestException);
+      expect(registryMock.getOrCreate).not.toHaveBeenCalled();
+    });
+
+    it('defaults portalUrl to https://<slug>.<primary PLATFORM_DOMAINS entry> when not provided', async () => {
       tenantRepoMock.findOne.mockResolvedValueOnce(null);
 
       await service.create(baseDto);
 
       expect(tenantRepoMock.create.mock.calls[0][0].portalUrl).toBe(
-        'https://city-general-hospital.clinivio.ai',
+        'https://city-general-hospital.megnim.com',
       );
     });
 
