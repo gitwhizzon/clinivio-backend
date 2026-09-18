@@ -16,9 +16,13 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const brokers = this.configService.get<string[]>('kafka.brokers') ?? [
-      'localhost:9092',
-    ];
+    const brokers = this.configService.get<string[]>('kafka.brokers') ?? [];
+    if (brokers.length === 0) {
+      this.logger.log(
+        'KAFKA_BROKERS not set — skipping Kafka connection, events will be skipped',
+      );
+      return;
+    }
     const sasl = this.configService.get<any>('kafka.sasl');
     const ssl = this.configService.get<boolean>('kafka.ssl') ?? false;
     const clientId =

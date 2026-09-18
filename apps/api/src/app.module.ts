@@ -1,5 +1,6 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AppController } from './app.controller';
 import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -155,6 +156,7 @@ import { AiModule } from './ai/ai.module';
     // ── AI Clinical Summary ───────────────────────────────────────────────────────
     AiModule,
   ],
+  controllers: [AppController],
   providers: [
     // Global audit interceptor — logs all mutating HTTP requests automatically.
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

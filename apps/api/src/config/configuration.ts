@@ -18,7 +18,13 @@ export default () => ({
   },
 
   kafka: {
-    brokers: (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(','),
+    // No default — an unset KAFKA_BROKERS means "no broker in this environment",
+    // not "try localhost:9092 and fail every boot". KafkaProducerService skips
+    // connecting entirely when this is empty.
+    brokers: (process.env.KAFKA_BROKERS ?? '')
+      .split(',')
+      .map((b) => b.trim())
+      .filter(Boolean),
     sasl: process.env.KAFKA_SASL_USERNAME
       ? {
           mechanism: 'scram-sha-256' as const,
