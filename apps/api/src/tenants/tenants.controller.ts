@@ -9,18 +9,51 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '@mediflow/shared';
+
+class TestWhatsappCredentialsDto {
+  @IsOptional()
+  @IsString()
+  phoneNumberId?: string;
+
+  @IsOptional()
+  @IsString()
+  accessToken?: string;
+}
 
 @ApiTags('Tenants')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tenants')
 export class TenantsController {
-  constructor(private tenantsService: TenantsService) {}
+  constructor(
+    private tenantsService: TenantsService,
+    private whatsappService: WhatsappService,
+  ) {}
+
+  /**
+   * Lets the onboarding form test a WhatsApp phoneNumberId/accessToken pair
+   * before a tenant even exists yet — same read-only provider check
+   * verifySetup() runs after onboarding, just callable earlier.
+   */
+  @Post('verify-whatsapp-credentials')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({
+    summary:
+      'Test a WhatsApp phoneNumberId/accessToken pair against the provider, without a tenant existing yet',
+  })
+  verifyWhatsappCredentials(@Body() dto: TestWhatsappCredentialsDto) {
+    if (!dto.phoneNumberId || !dto.accessToken) {
+      return { ok: false, detail: 'Enter both the Phone Number ID and Access Token first' };
+    }
+    return this.whatsappService.verifyCredentials(dto);
+  }
 
   @Get()
   @Roles('SUPER_ADMIN')
