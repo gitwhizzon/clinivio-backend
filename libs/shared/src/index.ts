@@ -31,6 +31,7 @@ export * from './pipes/validation.pipe';
 
 // Security
 export * from './security/allowed-origin';
+export * from './security/auth-cookies';
 
 // Bootstrap helper
 export * from './bootstrap/bootstrap-app';

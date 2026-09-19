@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { TenantDataSourceRegistry } from '@mediflow/database';
+import { PATIENT_ACCESS_TOKEN_COOKIE } from '@mediflow/shared';
 
 export interface PatientJwtPayload {
   sub: string; // patientAccountId
@@ -12,6 +13,10 @@ export interface PatientJwtPayload {
   type: 'PATIENT';
   iat?: number;
   exp?: number;
+}
+
+function cookieExtractor(req: Request): string | null {
+  return req.cookies?.[PATIENT_ACCESS_TOKEN_COOKIE] ?? null;
 }
 
 @Injectable()
@@ -24,7 +29,10 @@ export class PatientJwtStrategy extends PassportStrategy(
     private readonly registry: TenantDataSourceRegistry,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        cookieExtractor,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       passReqToCallback: true,
       secretOrKey:

@@ -24,7 +24,12 @@ import {
   IsUUID,
   ValidateIf,
 } from "class-validator";
-import { IsStrongPassword } from '@mediflow/shared';
+import {
+  IsStrongPassword,
+  authCookieOptions,
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from '@mediflow/shared';
 import { AuthService } from "./auth.service";
 import { MicrosoftSsoService } from "./microsoft-sso.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
@@ -54,8 +59,11 @@ class LoginDto {
 }
 
 class RefreshTokenDto {
+  // Optional — the browser SPA sends this via the httpOnly refreshToken
+  // cookie instead. Kept for non-browser API clients (scripts, tooling).
+  @IsOptional()
   @IsString()
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 class LogoutDto {
@@ -107,6 +115,30 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
+  /**
+   * Sets both auth tokens as httpOnly cookies. The browser SPA no longer
+   * reads/stores accessToken or refreshToken from the response body — the
+   * body still includes them for now purely for script/tooling compatibility
+   * (e.g. scripts/smoke-test.ts), but they're no longer what closes the loop
+   * for a real browser session.
+   */
+  private setAuthCookies(
+    res: Response,
+    tokens: { accessToken: string; refreshToken: string },
+  ) {
+    res.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, authCookieOptions('/'));
+    res.cookie(
+      REFRESH_TOKEN_COOKIE,
+      tokens.refreshToken,
+      authCookieOptions('/auth'),
+    );
+  }
+
+  private clearAuthCookies(res: Response) {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, authCookieOptions('/'));
+    res.clearCookie(REFRESH_TOKEN_COOKIE, authCookieOptions('/auth'));
+  }
+
   @Post('login')
   @Throttle({ default: { ttl: 900000, limit: 10 } })
   @UseGuards(LocalAuthGuard)
@@ -115,8 +147,14 @@ export class AuthController {
     summary:
       "Login with identifier/email, password, and optional tenantId or slug",
   })
-  async login(@Body() _dto: LoginDto, @Request() req: any) {
-    return this.authService.login(req.user);
+  async login(
+    @Body() _dto: LoginDto,
+    @Request() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(req.user);
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   // ── Microsoft Entra ID SSO — platform SUPER_ADMIN login only ────────────────
@@ -158,18 +196,34 @@ export class AuthController {
     summary:
       'Exchange the one-time code from the SSO callback redirect for a JWT — keeps the token out of the URL/browser history',
   })
-  async ssoExchange(@Body() dto: SsoExchangeDto) {
-    const payload = await this.microsoftSsoService.consumeExchangeCode(dto.code);
+  async ssoExchange(
+    @Body() dto: SsoExchangeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const payload = (await this.microsoftSsoService.consumeExchangeCode(
+      dto.code,
+    )) as { accessToken: string; refreshToken: string; user: unknown } | null;
     if (!payload) {
       throw new UnauthorizedException('Invalid or expired SSO exchange code');
     }
+    this.setAuthCookies(res, payload);
     return payload;
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshToken(dto.refreshToken);
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Request() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? dto.refreshToken;
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+    const result = await this.authService.refreshToken(refreshToken);
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('logout')
@@ -178,10 +232,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
-      'Revoke the refresh token passed in the body, so it cannot be used to mint new access tokens',
+      'Revoke the current refresh token so it cannot be used to mint new access tokens',
   })
-  async logout(@Body() dto: LogoutDto) {
-    return this.authService.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: LogoutDto,
+    @Request() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? dto.refreshToken;
+    const result = await this.authService.logout(refreshToken);
+    this.clearAuthCookies(res);
+    return result;
   }
 
   @Patch('change-password')

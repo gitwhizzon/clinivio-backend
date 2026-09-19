@@ -3,8 +3,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { JwtPayload } from '@mediflow/shared';
+import { JwtPayload, ACCESS_TOKEN_COOKIE } from '@mediflow/shared';
 import { TenantDataSourceRegistry } from '@mediflow/database';
+
+// Cookie first (the browser SPA — httpOnly, never touched by JS) with the
+// Authorization header as a fallback (scripts/smoke tests, Swagger's
+// "Authorize" button, any future non-browser API client).
+function cookieExtractor(req: Request): string | null {
+  return req.cookies?.[ACCESS_TOKEN_COOKIE] ?? null;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -13,7 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly registry: TenantDataSourceRegistry,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        cookieExtractor,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       passReqToCallback: true,
       secretOrKey:

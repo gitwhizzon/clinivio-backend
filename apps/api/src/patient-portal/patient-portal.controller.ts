@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   Request,
   HttpCode,
@@ -16,6 +17,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
+import {
+  authCookieOptions,
+  PATIENT_ACCESS_TOKEN_COOKIE,
+} from '@mediflow/shared';
 import { PatientPortalService } from './patient-portal.service';
 import {
   PatientRegisterDto,
@@ -37,18 +43,36 @@ export class PatientPortalController {
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
+  private setPatientAuthCookie(res: Response, accessToken: string) {
+    res.cookie(
+      PATIENT_ACCESS_TOKEN_COOKIE,
+      accessToken,
+      authCookieOptions('/'),
+    );
+  }
+
   @Post('auth/register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Self-register a patient account' })
-  register(@Body() dto: PatientRegisterDto) {
-    return this.svc.register(dto);
+  async register(
+    @Body() dto: PatientRegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.svc.register(dto);
+    this.setPatientAuthCookie(res, result.accessToken);
+    return result;
   }
 
   @Post('auth/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with phone + password' })
-  login(@Body() dto: PatientLoginDto) {
-    return this.svc.login(dto);
+  async login(
+    @Body() dto: PatientLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.svc.login(dto);
+    this.setPatientAuthCookie(res, result.accessToken);
+    return result;
   }
 
   @Post('auth/request-otp')
@@ -63,8 +87,13 @@ export class PatientPortalController {
   @Post('auth/verify-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP and receive a JWT access token' })
-  verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.svc.verifyOtp(dto);
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.svc.verifyOtp(dto);
+    this.setPatientAuthCookie(res, result.accessToken);
+    return result;
   }
 
   // ── Profile ───────────────────────────────────────────────────────────────────

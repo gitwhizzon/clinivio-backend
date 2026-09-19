@@ -1,6 +1,7 @@
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
 import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 import { RequestIdMiddleware } from '../middleware/request-id.middleware';
@@ -35,6 +36,12 @@ export async function bootstrapApp(
   app.use((req: any, res: any, next: any) =>
     reqIdMiddleware.use(req, res, next),
   );
+
+  // ── Cookies ─────────────────────────────────────────────────────────────────
+  // Auth tokens are set as httpOnly cookies (see auth.controller.ts) rather
+  // than returned in the JSON body — cookie-parser makes them readable as
+  // req.cookies in the JWT strategies and the refresh/logout endpoints.
+  app.use(cookieParser());
 
   // ── CORS ────────────────────────────────────────────────────────────────────
   // Every tenant gets its own subdomain (e.g. sndental.megnim.com), so CORS
