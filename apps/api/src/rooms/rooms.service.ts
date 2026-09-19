@@ -1,23 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Room, Bed, BedStatus, TenantEntityManager } from '@mediflow/database';
 
 export class CreateRoomDto {
-  name: string;
-  roomType: string;
-  floor?: string;
-  totalBeds: number;
-  pricePerDay: number;
-  amenities?: any;
-  notes?: string;
+  @IsString() name: string;
+  @IsString() roomType: string;
+  @IsOptional() @IsString() floor?: string;
+  @IsNumber() totalBeds: number;
+  @IsNumber() pricePerDay: number;
+  @IsOptional() amenities?: any;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class UpdateRoomDto {
-  name?: string;
-  floor?: string;
-  pricePerDay?: number;
-  amenities?: any;
-  notes?: string;
-  isActive?: boolean;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() floor?: string;
+  @IsOptional() @IsNumber() pricePerDay?: number;
+  @IsOptional() amenities?: any;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 @Injectable()

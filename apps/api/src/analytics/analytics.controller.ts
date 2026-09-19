@@ -10,15 +10,21 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { RolesGuard, Roles, TenantId } from '@mediflow/shared';
 import { AnalyticsService, COMMON_CONDITIONS } from './analytics.service';
 
 class PrescriptionSuggestionsDto {
-  conditions: string[];
-  diagnosis: string;
-  observations?: string;
-  ageInYears?: number;
-  gender?: string;
+  @IsArray() @IsString({ each: true }) conditions: string[];
+  @IsString() diagnosis: string;
+  @IsOptional() @IsString() observations?: string;
+  @IsOptional() @IsNumber() ageInYears?: number;
+  @IsOptional() @IsString() gender?: string;
 }
 
 @ApiTags('Analytics')

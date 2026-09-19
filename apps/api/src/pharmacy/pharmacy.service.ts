@@ -5,6 +5,20 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import {
   PharmacyOrder,
   PharmacyInventory,
@@ -23,73 +37,85 @@ import {
 } from '@mediflow/database';
 
 export class CreateInventoryItemDto {
-  name: string;
-  genericName?: string;
-  category?: string;
-  unit?: string;
-  stockQty?: number;
-  reorderLevel?: number;
-  batchNo?: string;
-  expiryDate?: string;
-  mrp?: number;
-  sellingPrice?: number;
-  gstRate?: number;
-  manufacturer?: string;
-  hsn?: string;
+  @IsString() name: string;
+  @IsOptional() @IsString() genericName?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsNumber() stockQty?: number;
+  @IsOptional() @IsNumber() reorderLevel?: number;
+  @IsOptional() @IsString() batchNo?: string;
+  @IsOptional() @IsDateString() expiryDate?: string;
+  @IsOptional() @IsNumber() mrp?: number;
+  @IsOptional() @IsNumber() sellingPrice?: number;
+  @IsOptional() @IsNumber() gstRate?: number;
+  @IsOptional() @IsString() manufacturer?: string;
+  @IsOptional() @IsString() hsn?: string;
 }
 
 export class UpdateInventoryItemDto {
-  name?: string;
-  genericName?: string;
-  category?: string;
-  unit?: string;
-  stockQty?: number;
-  reorderLevel?: number;
-  batchNo?: string;
-  expiryDate?: string;
-  mrp?: number;
-  sellingPrice?: number;
-  gstRate?: number;
-  manufacturer?: string;
-  hsn?: string;
-  isActive?: boolean;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() genericName?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsNumber() stockQty?: number;
+  @IsOptional() @IsNumber() reorderLevel?: number;
+  @IsOptional() @IsString() batchNo?: string;
+  @IsOptional() @IsDateString() expiryDate?: string;
+  @IsOptional() @IsNumber() mrp?: number;
+  @IsOptional() @IsNumber() sellingPrice?: number;
+  @IsOptional() @IsNumber() gstRate?: number;
+  @IsOptional() @IsString() manufacturer?: string;
+  @IsOptional() @IsString() hsn?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class UpdatePharmacyOrderDto {
-  status?: PharmacyOrderStatus;
-  dispenserNotes?: string;
+  @IsOptional() @IsEnum(PharmacyOrderStatus) status?: PharmacyOrderStatus;
+  @IsOptional() @IsString() dispenserNotes?: string;
 }
 
 export class DispenseItemDto {
-  inventoryId: string;
-  quantity: number;
+  @IsUUID() inventoryId: string;
+  @IsNumber() quantity: number;
 }
 
 export class DispenseOrderDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => DispenseItemDto)
   items: DispenseItemDto[];
+
+  @IsIn(['CASH', 'CARD', 'UPI', 'ONLINE'])
   paymentMethod: 'CASH' | 'CARD' | 'UPI' | 'ONLINE';
-  dispenserNotes?: string;
+
+  @IsOptional() @IsString() dispenserNotes?: string;
 }
 
 export class CreatePurchaseItemDto {
-  inventoryId?: string;
-  medicineName: string;
-  batchNo?: string;
-  expiryDate?: string;
-  quantity: number;
-  freeQty?: number;
-  purchasePrice: number;
-  mrp?: number;
-  sellingPrice?: number;
-  discountPercent?: number;
-  gstRate?: number;
+  @IsOptional() @IsUUID() inventoryId?: string;
+  @IsString() medicineName: string;
+  @IsOptional() @IsString() batchNo?: string;
+  @IsOptional() @IsDateString() expiryDate?: string;
+  @IsNumber() quantity: number;
+  @IsOptional() @IsNumber() freeQty?: number;
+  @IsNumber() purchasePrice: number;
+  @IsOptional() @IsNumber() mrp?: number;
+  @IsOptional() @IsNumber() sellingPrice?: number;
+  @IsOptional() @IsNumber() discountPercent?: number;
+  @IsOptional() @IsNumber() gstRate?: number;
 }
 
 export class CreatePurchaseDto {
-  vendorName: string;
-  invoiceNo?: string;
-  purchaseDate: string;
-  notes?: string;
+  @IsString() vendorName: string;
+  @IsOptional() @IsString() invoiceNo?: string;
+  @IsDateString() purchaseDate: string;
+  @IsOptional() @IsString() notes?: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreatePurchaseItemDto)
   items: CreatePurchaseItemDto[];
 }
 

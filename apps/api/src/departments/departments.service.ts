@@ -3,24 +3,30 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Department, TenantEntityManager } from '@mediflow/database';
 
 export class CreateDepartmentDto {
-  name: string;
-  code: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  sortOrder?: number;
+  @IsString() name: string;
+  @IsString() code: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() icon?: string;
+  @IsOptional() @IsString() color?: string;
+  @IsOptional() @IsNumber() sortOrder?: number;
 }
 
 export class UpdateDepartmentDto {
-  name?: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  sortOrder?: number;
-  isActive?: boolean;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() icon?: string;
+  @IsOptional() @IsString() color?: string;
+  @IsOptional() @IsNumber() sortOrder?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 const DEFAULT_DEPARTMENTS = [

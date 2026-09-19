@@ -8,6 +8,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsStrongPassword } from '@mediflow/shared';
 import { Gender } from '@mediflow/database';
 
 export class PatientRegisterDto {
@@ -23,7 +24,7 @@ export class PatientRegisterDto {
 
   @ApiProperty({ minLength: 8 })
   @IsString()
-  @MinLength(8)
+  @IsStrongPassword()
   password: string;
 
   @ApiProperty({ example: 'Ravi' })

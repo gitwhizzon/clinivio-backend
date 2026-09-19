@@ -18,11 +18,13 @@ import { LabOrderStatus } from '@mediflow/database';
 import {
   LabService,
   CreateLabTestDto,
+  UpdateLabTestDto,
   CreateLabOrderDto,
   UpdateLabOrderItemDto,
   CollectPaymentDto,
   MarkOutsourcedDto,
   CreateReagentDto,
+  UpdateReagentDto,
   LogReagentUsageDto,
 } from './lab.service';
 
@@ -67,7 +69,7 @@ export class LabController {
   updateTest(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() dto: Partial<CreateLabTestDto> & { isActive?: boolean },
+    @Body() dto: UpdateLabTestDto,
   ) {
     return this.svc.updateTest(id, tenantId, dto);
   }
@@ -266,7 +268,7 @@ export class LabController {
   updateReagent(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() dto: CreateReagentDto,
+    @Body() dto: UpdateReagentDto,
   ) {
     return this.svc.updateReagent(id, tenantId, dto);
   }

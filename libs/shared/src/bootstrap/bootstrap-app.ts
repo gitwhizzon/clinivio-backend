@@ -96,13 +96,14 @@ export async function bootstrapApp(
   });
 
   // ── Validation ──────────────────────────────────────────────────────────────
+  // Every request-body DTO across the app now has class-validator decorators
+  // on every field, so whitelist/forbidNonWhitelisted can be safely enforced:
+  // unknown/extra properties in a request body are rejected outright instead
+  // of silently passing through to services/TypeORM.
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist strips un-decorated properties — our service DTOs are plain classes
-      // (no class-validator decorators), so whitelist MUST be false or all body
-      // properties would be stripped and every POST/PATCH would arrive empty.
-      whitelist: false,
-      forbidNonWhitelisted: false,
+      whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),

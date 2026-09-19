@@ -11,12 +11,53 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { AppointmentsService } from './appointments.service';
-import { ConsultationService } from '../consultation/consultation.service';
+import {
+  ConsultationService,
+  SaveConsultationDto,
+  CreatePrescriptionDto,
+  CreateFollowUpDto,
+} from '../consultation/consultation.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles, TenantId, CurrentUser } from '@mediflow/shared';
-import { AppointmentStatus } from '@mediflow/database';
+import { AppointmentStatus, DiscountType } from '@mediflow/database';
+
+class ConfirmPaymentLineItemDto {
+  @IsString() description: string;
+  @IsNumber() amount: number;
+  @IsOptional() @IsNumber() discount?: number;
+}
+
+class CancelAppointmentDto {
+  @IsString() reason: string;
+  @IsOptional() @IsEnum(AppointmentStatus) cancelStatus?: AppointmentStatus;
+}
+
+class ConfirmPaymentDto {
+  @IsString() paymentMethod: string;
+  @IsNumber() @IsPositive() amount: number;
+  @IsOptional() @IsString() razorpayPaymentId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ConfirmPaymentLineItemDto)
+  lineItems?: ConfirmPaymentLineItemDto[];
+
+  @IsOptional() @IsEnum(DiscountType) discountType?: DiscountType;
+  @IsOptional() @IsNumber() discountValue?: number;
+}
 
 @ApiTags('Appointments')
 @ApiBearerAuth()
@@ -166,7 +207,7 @@ export class AppointmentsController {
   saveConsultation(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() dto: any,
+    @Body() dto: SaveConsultationDto,
   ) {
     return this.consultationSvc.saveConsultation(id, tenantId, dto);
   }
@@ -177,7 +218,7 @@ export class AppointmentsController {
   createPrescription(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() dto: any,
+    @Body() dto: CreatePrescriptionDto,
   ) {
     return this.consultationSvc.createPrescription(id, tenantId, dto);
   }
@@ -188,7 +229,7 @@ export class AppointmentsController {
   createFollowUp(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() dto: any,
+    @Body() dto: CreateFollowUpDto,
   ) {
     return this.consultationSvc.createFollowUp(id, tenantId, dto);
   }
@@ -205,15 +246,7 @@ export class AppointmentsController {
   confirmPayment(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body()
-    body: {
-      paymentMethod: string;
-      amount: number;
-      razorpayPaymentId?: string;
-      lineItems?: { description: string; amount: number; discount?: number }[];
-      discountType?: string;
-      discountValue?: number;
-    },
+    @Body() body: ConfirmPaymentDto,
     @CurrentUser() user: any,
   ) {
     return this.svc.confirmPayment(
@@ -224,7 +257,7 @@ export class AppointmentsController {
       body.razorpayPaymentId,
       {
         lineItems: body.lineItems,
-        discountType: body.discountType as any,
+        discountType: body.discountType,
         discountValue: body.discountValue,
         collectedByUserId: user?.sub,
       },
@@ -284,14 +317,9 @@ export class AppointmentsController {
   cancel(
     @Param('id') id: string,
     @TenantId() tenantId: string,
-    @Body() body: { reason: string; cancelStatus?: string },
+    @Body() body: CancelAppointmentDto,
   ) {
-    return this.svc.cancel(
-      id,
-      tenantId,
-      body.reason,
-      body.cancelStatus as AppointmentStatus,
-    );
+    return this.svc.cancel(id, tenantId, body.reason, body.cancelStatus);
   }
 
   /** GET /appointments/:id/queue — legacy: doctor queue by doctor ID */

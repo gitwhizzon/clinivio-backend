@@ -11,6 +11,7 @@ export * from './events/event-catalog';
 export * from './decorators/roles.decorator';
 export * from './decorators/tenant.decorator';
 export * from './decorators/current-user.decorator';
+export * from './decorators/is-strong-password.decorator';
 
 // Guards
 export * from './guards/roles.guard';

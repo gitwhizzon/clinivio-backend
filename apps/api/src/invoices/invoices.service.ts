@@ -3,6 +3,18 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import {
   Invoice,
   InvoicePayment,
@@ -13,12 +25,12 @@ import {
   TenantEntityManager,
 } from '@mediflow/database';
 
-interface LineItem {
-  name: string;
-  quantity?: number;
-  unitPrice: number;
-  gstPercent?: number;
-  discount?: number;
+class LineItem {
+  @IsString() name: string;
+  @IsOptional() @IsNumber() quantity?: number;
+  @IsNumber() unitPrice: number;
+  @IsOptional() @IsNumber() gstPercent?: number;
+  @IsOptional() @IsNumber() discount?: number;
 }
 
 // Invoice types eligible for partial payment / EMI. PHARMACY invoices are
@@ -32,23 +44,29 @@ const PARTIAL_PAYMENT_INVOICE_TYPES: InvoiceType[] = [
 ];
 
 export class CreateInvoiceDto {
-  patientId: string;
-  appointmentId?: string;
-  ipdAdmissionId?: string;
-  invoiceType: InvoiceType;
+  @IsUUID() patientId: string;
+  @IsOptional() @IsUUID() appointmentId?: string;
+  @IsOptional() @IsUUID() ipdAdmissionId?: string;
+  @IsEnum(InvoiceType) invoiceType: InvoiceType;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => LineItem)
   lineItems: LineItem[];
-  discountAmount?: number;
-  discountType?: DiscountType;
-  discountValue?: number;
-  notes?: string;
-  useIGST?: boolean;
+
+  @IsOptional() @IsNumber() discountAmount?: number;
+  @IsOptional() @IsEnum(DiscountType) discountType?: DiscountType;
+  @IsOptional() @IsNumber() discountValue?: number;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsBoolean() useIGST?: boolean;
 }
 
 export class ConfirmPaymentDto {
-  paymentMethod: string;
-  amount?: number;
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
+  @IsString() paymentMethod: string;
+  @IsOptional() @IsNumber() amount?: number;
+  @IsOptional() @IsString() razorpayOrderId?: string;
+  @IsOptional() @IsString() razorpayPaymentId?: string;
 }
 
 const DEFAULT_GST_RATE = 0;

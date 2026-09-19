@@ -6,6 +6,18 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { IsStrongPassword } from '@mediflow/shared';
+import {
   User,
   DoctorProfile,
   StaffProfile,
@@ -21,50 +33,50 @@ const STAFF_ROLES: Role[] = [
 ];
 
 export class CreateUserDto {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: Role;
-  phone?: string;
+  @IsEmail() email: string;
+  @IsStrongPassword() password: string;
+  @IsString() firstName: string;
+  @IsString() lastName: string;
+  @IsEnum(Role) role: Role;
+  @IsOptional() @IsString() phone?: string;
   // Doctor-specific
-  specialty?: string;
-  subSpecialty?: string;
-  qualification?: string;
-  registrationNo?: string;
-  consultationFee?: number;
-  experienceYears?: number;
-  departmentId?: string;
+  @IsOptional() @IsString() specialty?: string;
+  @IsOptional() @IsString() subSpecialty?: string;
+  @IsOptional() @IsString() qualification?: string;
+  @IsOptional() @IsString() registrationNo?: string;
+  @IsOptional() @IsNumber() consultationFee?: number;
+  @IsOptional() @IsNumber() experienceYears?: number;
+  @IsOptional() @IsUUID() departmentId?: string;
   // Non-doctor staff-specific
-  employeeId?: string;
-  joiningDate?: string;
-  shift?: string;
-  specialization?: string;
-  metadata?: Record<string, any>;
+  @IsOptional() @IsString() employeeId?: string;
+  @IsOptional() @IsDateString() joiningDate?: string;
+  @IsOptional() @IsString() shift?: string;
+  @IsOptional() @IsString() specialization?: string;
+  @IsOptional() @IsObject() metadata?: Record<string, any>;
 }
 
 export class UpdateUserDto {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  isActive?: boolean;
-  password?: string;
+  @IsOptional() @IsString() firstName?: string;
+  @IsOptional() @IsString() lastName?: string;
+  @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() phone?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsStrongPassword() password?: string;
   // Doctor-specific
-  specialty?: string;
-  subSpecialty?: string;
-  qualification?: string;
-  registrationNo?: string;
-  consultationFee?: number;
-  experienceYears?: number;
-  departmentId?: string;
-  isAcceptingPatients?: boolean;
+  @IsOptional() @IsString() specialty?: string;
+  @IsOptional() @IsString() subSpecialty?: string;
+  @IsOptional() @IsString() qualification?: string;
+  @IsOptional() @IsString() registrationNo?: string;
+  @IsOptional() @IsNumber() consultationFee?: number;
+  @IsOptional() @IsNumber() experienceYears?: number;
+  @IsOptional() @IsUUID() departmentId?: string;
+  @IsOptional() @IsBoolean() isAcceptingPatients?: boolean;
   // Non-doctor staff-specific
-  employeeId?: string;
-  joiningDate?: string;
-  shift?: string;
-  specialization?: string;
-  metadata?: Record<string, any>;
+  @IsOptional() @IsString() employeeId?: string;
+  @IsOptional() @IsDateString() joiningDate?: string;
+  @IsOptional() @IsString() shift?: string;
+  @IsOptional() @IsString() specialization?: string;
+  @IsOptional() @IsObject() metadata?: Record<string, any>;
 }
 
 @Injectable()

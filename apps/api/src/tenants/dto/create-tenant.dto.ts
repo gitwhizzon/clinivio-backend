@@ -7,6 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsStrongPassword } from '@mediflow/shared';
 import { SubscriptionTier } from '@mediflow/database';
 
 export class CreateTenantDto {
@@ -57,7 +58,7 @@ export class CreateTenantDto {
   @ApiPropertyOptional() @IsOptional() @IsString() pharmacyName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() portalUrl?: string;
   @ApiProperty({ example: 'admin@hospital.com' }) @IsEmail() adminEmail: string;
-  @ApiProperty() @IsString() @MinLength(8) adminPassword: string;
+  @ApiProperty() @IsString() @IsStrongPassword() adminPassword: string;
   @ApiProperty() @IsString() adminFirstName: string;
   @ApiProperty() @IsString() adminLastName: string;
   @ApiProperty({ example: '+919876543210' })

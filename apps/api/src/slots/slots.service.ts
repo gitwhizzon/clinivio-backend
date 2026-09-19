@@ -5,29 +5,37 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import {
+  IsArray,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import {
   DoctorSlot,
   DoctorProfile,
   TenantEntityManager,
 } from '@mediflow/database';
 
 export class CreateSlotDto {
-  doctorId: string;
-  slotDate: string;
-  startTime: string;
-  endTime: string;
-  durationMinutes?: number;
-  maxPatients?: number;
+  @IsUUID() doctorId: string;
+  @IsDateString() slotDate: string;
+  @IsString() startTime: string;
+  @IsString() endTime: string;
+  @IsOptional() @IsNumber() durationMinutes?: number;
+  @IsOptional() @IsNumber() maxPatients?: number;
 }
 
 export class CreateSlotsBulkDto {
-  doctorId: string;
-  fromDate: string;
-  toDate: string;
-  startTime: string;
-  endTime: string;
-  durationMinutes?: number;
-  maxPatients?: number;
-  weekdays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
+  @IsUUID() doctorId: string;
+  @IsDateString() fromDate: string;
+  @IsDateString() toDate: string;
+  @IsString() startTime: string;
+  @IsString() endTime: string;
+  @IsOptional() @IsNumber() durationMinutes?: number;
+  @IsOptional() @IsNumber() maxPatients?: number;
+  @IsOptional() @IsArray() @IsNumber({}, { each: true }) weekdays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
 }
 
 @Injectable()

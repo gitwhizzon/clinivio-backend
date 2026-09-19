@@ -3,32 +3,39 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { BillableService, TenantEntityManager } from '@mediflow/database';
 
 export class CreateBillableServiceDto {
-  name: string;
-  code: string;
-  category?: string;
-  departmentId?: string;
-  price: number;
-  durationMinutes?: number;
-  isTaxable?: boolean;
-  gstPercent?: number;
-  description?: string;
-  sortOrder?: number;
+  @IsString() name: string;
+  @IsString() code: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsUUID() departmentId?: string;
+  @IsNumber() price: number;
+  @IsOptional() @IsNumber() durationMinutes?: number;
+  @IsOptional() @IsBoolean() isTaxable?: boolean;
+  @IsOptional() @IsNumber() gstPercent?: number;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsNumber() sortOrder?: number;
 }
 
 export class UpdateBillableServiceDto {
-  name?: string;
-  category?: string;
-  departmentId?: string;
-  price?: number;
-  durationMinutes?: number;
-  isTaxable?: boolean;
-  gstPercent?: number;
-  description?: string;
-  sortOrder?: number;
-  isActive?: boolean;
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsUUID() departmentId?: string;
+  @IsOptional() @IsNumber() price?: number;
+  @IsOptional() @IsNumber() durationMinutes?: number;
+  @IsOptional() @IsBoolean() isTaxable?: boolean;
+  @IsOptional() @IsNumber() gstPercent?: number;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsNumber() sortOrder?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 @Injectable()

@@ -5,6 +5,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import {
+  IsArray,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import {
   IPDAdmission,
   IPDVitalSnapshot,
   IPDTreatment,
@@ -21,67 +29,67 @@ import {
 } from '@mediflow/database';
 
 export class AdmitPatientDto {
-  patientId: string;
-  attendingDoctorId: string;
-  bedId: string;
-  admissionReason: string;
-  appointmentId?: string;
-  referredBy?: string;
-  opinionObtainedBy?: string;
-  estimatedDischargeAt?: string;
-  notes?: string;
+  @IsUUID() patientId: string;
+  @IsUUID() attendingDoctorId: string;
+  @IsUUID() bedId: string;
+  @IsString() admissionReason: string;
+  @IsOptional() @IsUUID() appointmentId?: string;
+  @IsOptional() @IsString() referredBy?: string;
+  @IsOptional() @IsString() opinionObtainedBy?: string;
+  @IsOptional() @IsDateString() estimatedDischargeAt?: string;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class AddVitalSnapshotDto {
-  recordedById?: string;
-  bpSystolic?: number;
-  bpDiastolic?: number;
-  pulseRate?: number;
-  temperature?: number;
-  weightKg?: number;
-  heightCm?: number;
-  spo2?: number;
-  rbsMgDl?: number;
-  respiratoryRate?: number;
-  notes?: string;
+  @IsOptional() @IsUUID() recordedById?: string;
+  @IsOptional() @IsNumber() bpSystolic?: number;
+  @IsOptional() @IsNumber() bpDiastolic?: number;
+  @IsOptional() @IsNumber() pulseRate?: number;
+  @IsOptional() @IsNumber() temperature?: number;
+  @IsOptional() @IsNumber() weightKg?: number;
+  @IsOptional() @IsNumber() heightCm?: number;
+  @IsOptional() @IsNumber() spo2?: number;
+  @IsOptional() @IsNumber() rbsMgDl?: number;
+  @IsOptional() @IsNumber() respiratoryRate?: number;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class AddTreatmentDto {
-  orderedById?: string;
-  treatmentName: string;
-  instructions?: string;
-  notes?: string;
+  @IsOptional() @IsUUID() orderedById?: string;
+  @IsString() treatmentName: string;
+  @IsOptional() @IsString() instructions?: string;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class AddProcedureDto {
-  performedById?: string;
-  procedureName: string;
-  notes?: string;
-  outcomes?: string;
-  complications?: string;
-  photoUrls?: string[];
+  @IsOptional() @IsUUID() performedById?: string;
+  @IsString() procedureName: string;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsString() outcomes?: string;
+  @IsOptional() @IsString() complications?: string;
+  @IsOptional() @IsArray() @IsString({ each: true }) photoUrls?: string[];
 }
 
 export class SaveDischargeAdviceDto {
-  createdById?: string;
-  medications?: string;
-  dietAdvice?: string;
-  activityAdvice?: string;
-  woundCare?: string;
-  otherAdvice?: string;
-  followUpDate?: string;
-  followUpNotes?: string;
+  @IsOptional() @IsUUID() createdById?: string;
+  @IsOptional() @IsString() medications?: string;
+  @IsOptional() @IsString() dietAdvice?: string;
+  @IsOptional() @IsString() activityAdvice?: string;
+  @IsOptional() @IsString() woundCare?: string;
+  @IsOptional() @IsString() otherAdvice?: string;
+  @IsOptional() @IsDateString() followUpDate?: string;
+  @IsOptional() @IsString() followUpNotes?: string;
 }
 
 export class SaveDischargeSummaryDto {
-  generatedById?: string;
-  finalDiagnosis: string;
-  presentingComplaints: string;
-  treatmentSummary: string;
-  proceduresDone?: string;
-  investigationFindings?: string;
-  conditionAtDischarge: string;
-  pdfS3Key?: string;
+  @IsOptional() @IsUUID() generatedById?: string;
+  @IsString() finalDiagnosis: string;
+  @IsString() presentingComplaints: string;
+  @IsString() treatmentSummary: string;
+  @IsOptional() @IsString() proceduresDone?: string;
+  @IsOptional() @IsString() investigationFindings?: string;
+  @IsString() conditionAtDischarge: string;
+  @IsOptional() @IsString() pdfS3Key?: string;
 }
 
 @Injectable()

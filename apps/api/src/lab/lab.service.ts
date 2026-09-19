@@ -7,6 +7,17 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import {
   LabTest,
   LabOrder,
   LabOrderItem,
@@ -21,58 +32,83 @@ import {
 } from '@mediflow/database';
 
 export class CreateLabTestDto {
-  name: string;
-  code: string;
-  category: string;
-  unit?: string;
-  normalRange?: string;
-  price?: number;
-  gstRate?: number;
-  turnaround?: number;
+  @IsString() name: string;
+  @IsString() code: string;
+  @IsString() category: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsString() normalRange?: string;
+  @IsOptional() @IsNumber() price?: number;
+  @IsOptional() @IsNumber() gstRate?: number;
+  @IsOptional() @IsNumber() turnaround?: number;
+}
+
+export class UpdateLabTestDto {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() code?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsString() normalRange?: string;
+  @IsOptional() @IsNumber() price?: number;
+  @IsOptional() @IsNumber() gstRate?: number;
+  @IsOptional() @IsNumber() turnaround?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class CreateLabOrderDto {
-  patientId: string;
-  orderedById: string;
-  appointmentId?: string;
-  priority?: string;
-  clinicalNotes?: string;
-  sampleType?: string;
-  testIds: string[];
+  @IsUUID() patientId: string;
+  @IsUUID() orderedById: string;
+  @IsOptional() @IsUUID() appointmentId?: string;
+  @IsOptional() @IsString() priority?: string;
+  @IsOptional() @IsString() clinicalNotes?: string;
+  @IsOptional() @IsString() sampleType?: string;
+  @IsArray() @IsUUID(undefined, { each: true }) testIds: string[];
 }
 
 export class UpdateLabOrderItemDto {
-  result?: string;
-  unit?: string;
-  normalRange?: string;
-  flag?: LabResultFlag;
-  notes?: string;
+  @IsOptional() @IsString() result?: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsString() normalRange?: string;
+  @IsOptional() @IsEnum(LabResultFlag) flag?: LabResultFlag;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class CollectPaymentDto {
+  @IsIn(['CASH', 'CARD', 'UPI', 'ONLINE'])
   paymentMethod: 'CASH' | 'CARD' | 'UPI' | 'ONLINE';
-  amountPaid: number;
-  waived?: boolean;
+  @IsNumber() amountPaid: number;
+  @IsOptional() @IsBoolean() waived?: boolean;
 }
 export class MarkOutsourcedDto {
-  externalLabName: string;
-  externalReference?: string;
+  @IsString() externalLabName: string;
+  @IsOptional() @IsString() externalReference?: string;
 }
 export class CreateReagentDto {
-  name: string;
-  unit: string;
-  currentQty?: number;
-  reorderLevel?: number;
-  unitCost?: number;
-  manufacturer?: string;
-  batchNo?: string;
-  expiryDate?: string;
+  @IsString() name: string;
+  @IsString() unit: string;
+  @IsOptional() @IsNumber() currentQty?: number;
+  @IsOptional() @IsNumber() reorderLevel?: number;
+  @IsOptional() @IsNumber() unitCost?: number;
+  @IsOptional() @IsString() manufacturer?: string;
+  @IsOptional() @IsString() batchNo?: string;
+  @IsOptional() @IsDateString() expiryDate?: string;
 }
+export class UpdateReagentDto {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() unit?: string;
+  @IsOptional() @IsNumber() currentQty?: number;
+  @IsOptional() @IsNumber() reorderLevel?: number;
+  @IsOptional() @IsNumber() unitCost?: number;
+  @IsOptional() @IsString() manufacturer?: string;
+  @IsOptional() @IsString() batchNo?: string;
+  @IsOptional() @IsDateString() expiryDate?: string;
+}
+
 export class LogReagentUsageDto {
-  quantity: number;
+  @IsNumber() quantity: number;
+  @IsOptional() @IsIn(['USE', 'RESTOCK', 'DISCARD', 'ADJUST'])
   type?: 'USE' | 'RESTOCK' | 'DISCARD' | 'ADJUST';
-  notes?: string;
-  labOrderId?: string;
+  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsUUID() labOrderId?: string;
 }
 
 @Injectable()
@@ -156,11 +192,7 @@ export class LabService {
     return test;
   }
 
-  async updateTest(
-    id: string,
-    tenantId: string,
-    dto: Partial<CreateLabTestDto> & { isActive?: boolean },
-  ) {
+  async updateTest(id: string, tenantId: string, dto: UpdateLabTestDto) {
     await this.findTestById(id, tenantId);
     const updates: Partial<LabTest> = {};
     if (dto.name !== undefined) updates.name = dto.name;
@@ -610,11 +642,7 @@ export class LabService {
     );
   }
 
-  async updateReagent(
-    id: string,
-    tenantId: string,
-    dto: Partial<CreateReagentDto>,
-  ) {
+  async updateReagent(id: string, tenantId: string, dto: UpdateReagentDto) {
     const r = await this.db
       .repo(LabReagent)
       .findOne({ where: { id, tenantId } });

@@ -10,6 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsStrongPassword } from '@mediflow/shared';
 import { SubscriptionTier } from '@mediflow/database';
 
 /**
@@ -117,7 +118,7 @@ export class UpdateTenantDto {
   @ApiPropertyOptional({ example: 'NewPass@123' })
   @IsOptional()
   @IsString()
-  @MinLength(8)
+  @IsStrongPassword()
   adminPassword?: string;
 
   @ApiPropertyOptional() @IsOptional() @IsString() adminFirstName?: string;

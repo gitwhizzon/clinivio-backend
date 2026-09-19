@@ -1,5 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ArrayMinSize,
+  ValidateNested,
+} from 'class-validator';
 import {
   Consultation,
   Prescription,
@@ -12,43 +24,59 @@ import { KafkaProducerService } from '../kafka/kafka-producer.service';
 import { KAFKA_TOPICS } from '@mediflow/shared';
 
 export class VitalsDto {
-  bpSystolic?: number;
-  bpDiastolic?: number;
-  pulseRate?: number;
-  temperature?: number;
-  weightKg?: number;
-  heightCm?: number;
-  spo2?: number;
-  rbsMgDl?: number;
-  respiratoryRate?: number;
+  @IsOptional() @IsNumber() bpSystolic?: number;
+  @IsOptional() @IsNumber() bpDiastolic?: number;
+  @IsOptional() @IsNumber() pulseRate?: number;
+  @IsOptional() @IsNumber() temperature?: number;
+  @IsOptional() @IsNumber() weightKg?: number;
+  @IsOptional() @IsNumber() heightCm?: number;
+  @IsOptional() @IsNumber() spo2?: number;
+  @IsOptional() @IsNumber() rbsMgDl?: number;
+  @IsOptional() @IsNumber() respiratoryRate?: number;
 }
 
 export class SaveConsultationDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => VitalsDto)
   vitals?: VitalsDto;
-  observations?: string;
-  diagnosis?: string;
+
+  @IsOptional() @IsString() observations?: string;
+  @IsOptional() @IsString() diagnosis?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   icdCodes?: string[];
-  doctorNotes?: string;
+
+  @IsOptional() @IsString() doctorNotes?: string;
+}
+
+export class PrescriptionItemDto {
+  @IsString() medicineName: string;
+  @IsOptional() @IsString() genericName?: string;
+  @IsString() dosage: string;
+  @IsString() frequency: string;
+  @IsString() duration: string;
+  @IsOptional() @IsString() instructions?: string;
+  @IsOptional() @IsNumber() quantity?: number;
+  @IsOptional() @IsBoolean() isSubstitutable?: boolean;
+  @IsOptional() @IsUUID() inventoryId?: string;
 }
 
 export class CreatePrescriptionDto {
-  notes?: string;
-  items: {
-    medicineName: string;
-    genericName?: string;
-    dosage: string;
-    frequency: string;
-    duration: string;
-    instructions?: string;
-    quantity?: number;
-    isSubstitutable?: boolean;
-    inventoryId?: string;
-  }[];
+  @IsOptional() @IsString() notes?: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => PrescriptionItemDto)
+  items: PrescriptionItemDto[];
 }
 
 export class CreateFollowUpDto {
-  followUpDate: string;
-  notes?: string;
+  @IsDateString() followUpDate: string;
+  @IsOptional() @IsString() notes?: string;
 }
 
 @Injectable()

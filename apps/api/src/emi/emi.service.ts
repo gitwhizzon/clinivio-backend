@@ -3,6 +3,18 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
+import { Type } from "class-transformer";
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from "class-validator";
 import {
   Appointment,
   EmiPlan,
@@ -19,30 +31,41 @@ import {
   In,
 } from "@mediflow/database";
 
+class EmiLineItemDto {
+  @IsString() description: string;
+  @IsNumber() amount: number;
+}
+
 export class CreateEmiPlanDto {
   // Either invoiceId (invoice already exists, e.g. an IPD admission bill),
   // or appointmentId + lineItems to bill a fresh OPD consultation straight
   // into an EMI plan without a separate "create invoice, then EMI" step.
-  invoiceId?: string;
-  appointmentId?: string;
-  lineItems?: { description: string; amount: number }[];
-  discountType?: DiscountType;
-  discountValue?: number;
-  advanceAmount: number;
-  numberOfInstallments: number;
-  frequency?: EmiFrequency;
-  startDate: string;
-  paymentMethod: string;
-  notes?: string;
+  @IsOptional() @IsUUID() invoiceId?: string;
+  @IsOptional() @IsUUID() appointmentId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EmiLineItemDto)
+  lineItems?: EmiLineItemDto[];
+
+  @IsOptional() @IsEnum(DiscountType) discountType?: DiscountType;
+  @IsOptional() @IsNumber() discountValue?: number;
+  @IsNumber() advanceAmount: number;
+  @IsNumber() @IsPositive() numberOfInstallments: number;
+  @IsOptional() @IsEnum(EmiFrequency) frequency?: EmiFrequency;
+  @IsDateString() startDate: string;
+  @IsString() paymentMethod: string;
+  @IsOptional() @IsString() notes?: string;
 }
 
 export class CollectInstallmentDto {
-  paymentMethod: string;
-  amount?: number;
+  @IsString() paymentMethod: string;
+  @IsOptional() @IsNumber() amount?: number;
 }
 
 export class CancelEmiPlanDto {
-  reason?: string;
+  @IsOptional() @IsString() reason?: string;
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
