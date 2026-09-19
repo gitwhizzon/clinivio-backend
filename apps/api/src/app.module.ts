@@ -1,9 +1,9 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
 
@@ -160,6 +160,10 @@ import { AiModule } from './ai/ai.module';
   providers: [
     // Global audit interceptor — logs all mutating HTTP requests automatically.
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    // Global rate limiting — the @Throttle(...) overrides on login/OTP/reset
+    // routes (auth.controller.ts) were previously inert with no ThrottlerGuard
+    // actually registered anywhere, leaving login unprotected from brute force.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule implements NestModule {

@@ -20,6 +20,7 @@ const tenantRepoMock = {
 
 function createQueryBuilderMock(result: any) {
   return {
+    addSelect: jest.fn().mockReturnThis(),
     leftJoinAndSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),

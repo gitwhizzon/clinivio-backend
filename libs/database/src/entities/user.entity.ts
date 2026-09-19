@@ -34,7 +34,10 @@ export class User {
   @Column({ nullable: true })
   phone: string | null;
 
-  @Column({ name: 'password_hash' })
+  // select: false — GET /users and any other unscoped find() must never return
+  // this by accident. Callers that genuinely need it (login, password change)
+  // already explicitly `.addSelect('user.passwordHash')`.
+  @Column({ name: 'password_hash', select: false })
   passwordHash: string;
 
   @Column({ name: 'first_name' })
@@ -60,6 +63,7 @@ export class User {
     nullable: true,
     type: 'varchar',
     length: 128,
+    select: false,
   })
   passwordResetToken: string | null;
 

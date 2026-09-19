@@ -84,6 +84,7 @@ export class AuthService {
       user = await targetDs
         .getRepository(User)
         .createQueryBuilder("user")
+        .addSelect("user.passwordHash")
         .leftJoinAndSelect("user.doctorProfile", "doctorProfile")
         .where("user.tenantId = :tenantId", { tenantId: resolvedTenantId })
         .andWhere("user.isActive = :isActive", { isActive: true })
@@ -114,6 +115,7 @@ export class AuthService {
       user = await this.platformDs
         .getRepository(User)
         .createQueryBuilder("user")
+        .addSelect("user.passwordHash")
         .leftJoinAndSelect("user.doctorProfile", "doctorProfile")
         .where("LOWER(user.email) = LOWER(:identifier)", {
           identifier: normalizedIdentifier,
@@ -322,7 +324,18 @@ export class AuthService {
       ? targetDs.getRepository(User)
       : this.platformDs.getRepository(User);
 
-    const user = await repo.findOne({ where: { id: userId, isActive: true } });
+    const user = await repo.findOne({
+      where: { id: userId, isActive: true },
+      select: {
+        id: true,
+        passwordHash: true,
+        tenantId: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);

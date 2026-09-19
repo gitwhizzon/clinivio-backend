@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
+import { TenantDataSourceRegistry } from '@mediflow/database';
 
 export interface PatientJwtPayload {
   sub: string; // patientAccountId
@@ -17,10 +19,14 @@ export class PatientJwtStrategy extends PassportStrategy(
   Strategy,
   'patient-jwt',
 ) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly registry: TenantDataSourceRegistry,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      passReqToCallback: true,
       secretOrKey:
         configService.get<string>('jwt.secret') ??
         process.env.JWT_SECRET ??
@@ -28,10 +34,21 @@ export class PatientJwtStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: PatientJwtPayload) {
+  async validate(req: Request, payload: PatientJwtPayload) {
     if (payload.type !== 'PATIENT') {
       throw new UnauthorizedException('Invalid token type');
     }
+
+    // Same cross-tenant defense as JwtStrategy — the tenant resolved from
+    // X-Tenant-Slug/subdomain must match the tenant this patient token was
+    // issued for.
+    const requestTenantId = this.registry.currentTenantId;
+    if (requestTenantId && payload.tenantId !== requestTenantId) {
+      throw new UnauthorizedException(
+        'Token does not match the requested tenant.',
+      );
+    }
+
     return {
       sub: payload.sub,
       patientId: payload.patientId,

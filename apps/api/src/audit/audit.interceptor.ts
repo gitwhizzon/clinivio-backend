@@ -252,7 +252,11 @@ export class AuditInterceptor implements NestInterceptor {
       method: string;
       url: string;
       body: Record<string, unknown>;
-      user?: { userId: string; email: string; role: string; tenantId: string };
+      // JwtStrategy.validate() returns { sub, id, tenantId, role, email } — there
+      // is no `userId` field. Using `sub` here (both `id` and `sub` alias the
+      // same value) — using a nonexistent `userId` silently wrote every audit
+      // row with userId: undefined, breaking "who did this" attribution.
+      user?: { sub: string; email: string; role: string; tenantId: string };
       ip: string;
       headers: Record<string, string>;
     }>();
@@ -277,7 +281,7 @@ export class AuditInterceptor implements NestInterceptor {
       tap((response: unknown) => {
         this.auditService.log({
           tenantId: user.tenantId,
-          userId: user.userId,
+          userId: user.sub,
           userEmail: user.email,
           userRole: user.role,
           action,
@@ -293,7 +297,7 @@ export class AuditInterceptor implements NestInterceptor {
       catchError((err: Error) => {
         this.auditService.log({
           tenantId: user.tenantId,
-          userId: user.userId,
+          userId: user.sub,
           userEmail: user.email,
           userRole: user.role,
           action,

@@ -184,6 +184,7 @@ export class PatientPortalService {
     const account = await accountRepo.findOne({
       where: { tenantId: tenant.id, phone: dto.phone, isActive: true },
       relations: ['patient'],
+      select: { id: true, tenantId: true, patientId: true, phone: true, passwordHash: true, isActive: true },
     });
     if (!account) throw new UnauthorizedException('Invalid phone or password');
 
