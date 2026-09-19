@@ -18,7 +18,7 @@
     "@mediflow/database": "workspace:*",
     "@mediflow/shared": "workspace:*",
     "@nestjs/bull": "^10.1.1",
-    "@nestjs/common": "^10.3.0",
+    "@nestjs/common": "^12.0.3",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.0",
     "@nestjs/jwt": "^10.2.0",
