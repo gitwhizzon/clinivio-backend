@@ -3,6 +3,8 @@ export interface JwtPayload {
   tenantId: string;
   role: string;
   email: string;
+  /** Only set on refresh tokens — the Redis key suffix used to revoke/rotate them. */
+  jti?: string;
   iat?: number;
   exp?: number;
 }

@@ -6,6 +6,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { EmailService } from '../email/email.service';
+import { SSO_REDIS_CLIENT } from './microsoft-sso.service';
 import { TenantDataSourceRegistry, User, Tenant } from '@mediflow/database';
 
 const userRepoMock = {
@@ -61,6 +62,12 @@ const emailServiceMock = {
     .mockReturnValue({ html: '<p>reset</p>', text: 'reset' }),
 };
 
+const redisMock = {
+  setex: jest.fn().mockResolvedValue('OK'),
+  get: jest.fn().mockResolvedValue(null),
+  del: jest.fn().mockResolvedValue(1),
+};
+
 describe("AuthService", () => {
   let service: AuthService;
 
@@ -76,6 +83,7 @@ describe("AuthService", () => {
         { provide: JwtService, useValue: jwtServiceMock },
         { provide: ConfigService, useValue: configServiceMock },
         { provide: EmailService, useValue: emailServiceMock },
+        { provide: SSO_REDIS_CLIENT, useValue: redisMock },
       ],
     }).compile();
 
@@ -299,7 +307,7 @@ describe("AuthService", () => {
       );
     });
 
-    it('returns new accessToken when refresh token is valid', async () => {
+    it('throws when the token predates jti-based revocation (no jti claim)', async () => {
       jwtServiceMock.verify.mockReturnValueOnce({
         sub: 'u1',
         tenantId: 't1',
@@ -307,14 +315,71 @@ describe("AuthService", () => {
         email: 'a@b.com',
       });
 
+      await expect(service.refreshToken('legacy-refresh')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throws when the jti has already been revoked/rotated away', async () => {
+      jwtServiceMock.verify.mockReturnValueOnce({
+        sub: 'u1',
+        tenantId: 't1',
+        role: 'ADMIN',
+        email: 'a@b.com',
+        jti: 'jti-1',
+      });
+      redisMock.get.mockResolvedValueOnce(null);
+
+      await expect(service.refreshToken('used-refresh')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rotates: deletes the old jti and returns a new accessToken + refreshToken', async () => {
+      jwtServiceMock.verify.mockReturnValueOnce({
+        sub: 'u1',
+        tenantId: 't1',
+        role: 'ADMIN',
+        email: 'a@b.com',
+        jti: 'jti-1',
+      });
+      redisMock.get.mockResolvedValueOnce('u1');
+
       const result = await service.refreshToken('valid-refresh');
+
+      expect(redisMock.del).toHaveBeenCalledWith('refresh:jti-1');
       expect(result.accessToken).toBe('mock-access-token');
+      expect(result.refreshToken).toBe('mock-access-token');
     });
   });
 
   describe("logout", () => {
-    it("returns success message", async () => {
-      const result = await service.logout("u1");
+    it("revokes the jti when a valid refresh token is provided", async () => {
+      jwtServiceMock.verify.mockReturnValueOnce({
+        sub: 'u1',
+        tenantId: 't1',
+        role: 'ADMIN',
+        email: 'a@b.com',
+        jti: 'jti-2',
+      });
+
+      const result = await service.logout('some-refresh-token');
+
+      expect(redisMock.del).toHaveBeenCalledWith('refresh:jti-2');
+      expect(result.message).toBe("Logged out successfully");
+    });
+
+    it("succeeds even with no refresh token (nothing to revoke)", async () => {
+      const result = await service.logout(undefined);
+      expect(result.message).toBe("Logged out successfully");
+    });
+
+    it("succeeds even when the refresh token is already invalid", async () => {
+      jwtServiceMock.verify.mockImplementationOnce(() => {
+        throw new Error('jwt expired');
+      });
+
+      const result = await service.logout('garbage-token');
       expect(result.message).toBe("Logged out successfully");
     });
   });

@@ -22,9 +22,9 @@ import {
   IsString,
   IsOptional,
   IsUUID,
-  MinLength,
   ValidateIf,
 } from "class-validator";
+import { IsStrongPassword } from '@mediflow/shared';
 import { AuthService } from "./auth.service";
 import { MicrosoftSsoService } from "./microsoft-sso.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
@@ -58,12 +58,18 @@ class RefreshTokenDto {
   refreshToken: string;
 }
 
+class LogoutDto {
+  @IsOptional()
+  @IsString()
+  refreshToken?: string;
+}
+
 class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
   @IsString()
-  @MinLength(8)
+  @IsStrongPassword()
   newPassword: string;
 }
 
@@ -81,7 +87,7 @@ class ResetPasswordDto {
   token: string;
 
   @IsString()
-  @MinLength(8)
+  @IsStrongPassword()
   newPassword: string;
 }
 
@@ -170,8 +176,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: any) {
-    return this.authService.logout(req.user.id);
+  @ApiOperation({
+    summary:
+      'Revoke the refresh token passed in the body, so it cannot be used to mint new access tokens',
+  })
+  async logout(@Body() dto: LogoutDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 
   @Patch('change-password')

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
@@ -11,6 +12,7 @@ import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 import * as bcrypt from "bcrypt";
 import * as crypto from "crypto";
+import Redis from 'ioredis';
 import {
   User,
   Tenant,
@@ -19,6 +21,10 @@ import {
 } from '@mediflow/database';
 import { JwtPayload } from '@mediflow/shared';
 import { EmailService } from '../email/email.service';
+import { SSO_REDIS_CLIENT } from './microsoft-sso.service';
+
+const REFRESH_TOKEN_KEY_PREFIX = 'refresh:';
+const DEFAULT_REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 @Injectable()
 export class AuthService {
@@ -32,6 +38,8 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private readonly emailService: EmailService,
+    /** Same Redis instance MicrosoftSsoService uses — namespaced by key prefix, not a separate connection */
+    @Inject(SSO_REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   async validateUser(
@@ -261,10 +269,7 @@ export class AuthService {
       email: user.email,
     };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-      expiresIn: this.configService.get<string>('jwt.refreshExpiresIn'),
-    });
+    const refreshToken = await this.issueRefreshToken(payload);
     return {
       accessToken,
       refreshToken,
@@ -281,24 +286,95 @@ export class AuthService {
     };
   }
 
+  /**
+   * Signs a refresh token AND records its jti in Redis with a TTL matching
+   * the token's own expiry. refreshToken()/logout() check/delete that same
+   * key — a signature-valid-but-unlisted jti means the token was already
+   * used (rotated away) or explicitly revoked at logout.
+   */
+  private async issueRefreshToken(payload: JwtPayload): Promise<string> {
+    const jti = crypto.randomUUID();
+    const expiresIn =
+      this.configService.get<string>('jwt.refreshExpiresIn') ?? '7d';
+    const ttlSeconds = this.parseDurationToSeconds(expiresIn);
+
+    await this.redis.setex(
+      `${REFRESH_TOKEN_KEY_PREFIX}${jti}`,
+      ttlSeconds,
+      payload.sub,
+    );
+
+    return this.jwtService.sign(
+      { ...payload, jti },
+      {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+        expiresIn,
+      },
+    );
+  }
+
+  private parseDurationToSeconds(input: string): number {
+    const match = /^(\d+)\s*([smhd])$/i.exec(input.trim());
+    if (!match) return DEFAULT_REFRESH_TTL_SECONDS;
+    const value = parseInt(match[1], 10);
+    const multipliers: Record<string, number> = {
+      s: 1,
+      m: 60,
+      h: 3600,
+      d: 86400,
+    };
+    return value * multipliers[match[2].toLowerCase()];
+  }
+
   async refreshToken(token: string) {
+    let payload: JwtPayload;
     try {
-      const payload = this.jwtService.verify<JwtPayload>(token, {
+      payload = this.jwtService.verify<JwtPayload>(token, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
-      const newPayload: JwtPayload = {
-        sub: payload.sub,
-        tenantId: payload.tenantId,
-        role: payload.role,
-        email: payload.email,
-      };
-      return { accessToken: this.jwtService.sign(newPayload) };
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
+
+    // Tokens issued before revocation support carry no jti — reject them so
+    // every session re-authenticates through the new, revocable scheme.
+    const key = payload.jti
+      ? `${REFRESH_TOKEN_KEY_PREFIX}${payload.jti}`
+      : null;
+    const stillValid = key ? await this.redis.get(key) : null;
+    if (!stillValid) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    // Rotate: this refresh token is single-use. Deleting it now means a
+    // stolen-and-replayed copy fails on its next use instead of working
+    // silently forever.
+    await this.redis.del(key!);
+
+    const newPayload: JwtPayload = {
+      sub: payload.sub,
+      tenantId: payload.tenantId,
+      role: payload.role,
+      email: payload.email,
+    };
+    const accessToken = this.jwtService.sign(newPayload);
+    const refreshToken = await this.issueRefreshToken(newPayload);
+    return { accessToken, refreshToken };
   }
 
-  async logout(_userId: string) {
+  async logout(refreshToken?: string) {
+    if (refreshToken) {
+      try {
+        const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
+          secret: this.configService.get<string>('jwt.refreshSecret'),
+        });
+        if (payload.jti) {
+          await this.redis.del(`${REFRESH_TOKEN_KEY_PREFIX}${payload.jti}`);
+        }
+      } catch {
+        // Already invalid/expired — nothing left to revoke.
+      }
+    }
     return { message: 'Logged out successfully' };
   }
 
