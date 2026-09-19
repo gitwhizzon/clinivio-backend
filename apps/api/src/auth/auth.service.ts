@@ -26,6 +26,16 @@ import { SSO_REDIS_CLIENT } from './microsoft-sso.service';
 const REFRESH_TOKEN_KEY_PREFIX = 'refresh:';
 const DEFAULT_REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+// Account lockout — @Throttle on the /auth/login route limits request RATE,
+// but never actually locks an account: an attacker distributed across many
+// IPs (or just patient enough) could brute-force forever. This tracks failed
+// attempts per (tenant scope + identifier) regardless of source IP.
+const LOGIN_FAIL_KEY_PREFIX = 'loginfail:';
+const LOGIN_LOCK_KEY_PREFIX = 'loginlock:';
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_FAILURE_WINDOW_SECONDS = 15 * 60;
+const LOGIN_LOCKOUT_SECONDS = 15 * 60;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -41,6 +51,36 @@ export class AuthService {
     /** Same Redis instance MicrosoftSsoService uses — namespaced by key prefix, not a separate connection */
     @Inject(SSO_REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  private loginFailKey(scope: string, identifier: string): string {
+    return `${LOGIN_FAIL_KEY_PREFIX}${scope}:${identifier.toLowerCase()}`;
+  }
+
+  private loginLockKey(scope: string, identifier: string): string {
+    return `${LOGIN_LOCK_KEY_PREFIX}${scope}:${identifier.toLowerCase()}`;
+  }
+
+  private async isLockedOut(scope: string, identifier: string): Promise<boolean> {
+    return (await this.redis.get(this.loginLockKey(scope, identifier))) !== null;
+  }
+
+  private async recordFailedLogin(scope: string, identifier: string): Promise<void> {
+    const key = this.loginFailKey(scope, identifier);
+    const count = await this.redis.incr(key);
+    if (count === 1) {
+      await this.redis.expire(key, LOGIN_FAILURE_WINDOW_SECONDS);
+    }
+    if (count >= LOGIN_MAX_ATTEMPTS) {
+      await this.redis.setex(this.loginLockKey(scope, identifier), LOGIN_LOCKOUT_SECONDS, '1');
+    }
+  }
+
+  private async clearFailedLogins(scope: string, identifier: string): Promise<void> {
+    await Promise.all([
+      this.redis.del(this.loginFailKey(scope, identifier)),
+      this.redis.del(this.loginLockKey(scope, identifier)),
+    ]);
+  }
 
   async validateUser(
     identifier: string,
@@ -86,6 +126,16 @@ export class AuthService {
       }
     }
 
+    const lockoutScope = resolvedTenantId ?? 'platform';
+    if (await this.isLockedOut(lockoutScope, normalizedIdentifier)) {
+      this.logger.warn(
+        `Login blocked — too many failed attempts identifier=${maskedIdentifier} scope=${lockoutScope}`,
+      );
+      throw new UnauthorizedException(
+        'Too many failed login attempts. Please try again in a few minutes.',
+      );
+    }
+
     let user: User | null = null;
 
     if (targetDs && resolvedTenantId) {
@@ -108,6 +158,7 @@ export class AuthService {
           this.logger.warn(
             `Login password mismatch identifier=${maskedIdentifier} tenantId=${resolvedTenantId} userId=${user.id}`,
           );
+          await this.recordFailedLogin(lockoutScope, normalizedIdentifier);
           return null;
         }
 
@@ -118,6 +169,7 @@ export class AuthService {
         this.logger.warn(
           `Tenant login user not found identifier=${maskedIdentifier} tenantId=${resolvedTenantId}`,
         );
+        await this.recordFailedLogin(lockoutScope, normalizedIdentifier);
       }
     } else {
       user = await this.platformDs
@@ -150,6 +202,7 @@ export class AuthService {
           this.logger.warn(
             `Super-admin login password mismatch identifier=${maskedIdentifier} userId=${user.id}`,
           );
+          await this.recordFailedLogin(lockoutScope, normalizedIdentifier);
           return null;
         }
 
@@ -160,10 +213,13 @@ export class AuthService {
         this.logger.warn(
           `Super-admin login user not found identifier=${maskedIdentifier}`,
         );
+        await this.recordFailedLogin(lockoutScope, normalizedIdentifier);
       }
     }
 
     if (!user) return null;
+
+    await this.clearFailedLogins(lockoutScope, normalizedIdentifier);
 
     this.logger.log(
       `Login success identifier=${maskedIdentifier} userId=${user.id} tenantId=${user.tenantId ?? "platform"} role=${user.role}`,

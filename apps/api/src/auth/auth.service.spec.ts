@@ -66,6 +66,8 @@ const redisMock = {
   setex: jest.fn().mockResolvedValue('OK'),
   get: jest.fn().mockResolvedValue(null),
   del: jest.fn().mockResolvedValue(1),
+  incr: jest.fn().mockResolvedValue(1),
+  expire: jest.fn().mockResolvedValue(1),
 };
 
 describe("AuthService", () => {
@@ -135,6 +137,79 @@ describe("AuthService", () => {
       expect(result).not.toBeNull();
       expect(result).not.toHaveProperty('passwordHash');
       expect(result.email).toBe('admin@test.com');
+    });
+  });
+
+  describe("validateUser - account lockout", () => {
+    it("rejects immediately, without querying the DB, when already locked out", async () => {
+      redisMock.get.mockResolvedValueOnce('1'); // loginlock key present
+
+      await expect(
+        service.validateUser("admin@test.com", "whatever"),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(userRepoMock.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it("records a failed attempt on wrong password", async () => {
+      const hash = await bcrypt.hash("correct", 10);
+      userRepoMock.createQueryBuilder.mockReturnValue(
+        createQueryBuilderMock({
+          id: "u1",
+          email: "admin@test.com",
+          passwordHash: hash,
+          role: "SUPER_ADMIN",
+        }),
+      );
+
+      await service.validateUser("admin@test.com", "wrong");
+
+      expect(redisMock.incr).toHaveBeenCalledWith(
+        expect.stringContaining('loginfail:platform:admin@test.com'),
+      );
+    });
+
+    it("locks the account out once failures reach the max attempt count", async () => {
+      const hash = await bcrypt.hash("correct", 10);
+      userRepoMock.createQueryBuilder.mockReturnValue(
+        createQueryBuilderMock({
+          id: "u1",
+          email: "admin@test.com",
+          passwordHash: hash,
+          role: "SUPER_ADMIN",
+        }),
+      );
+      redisMock.incr.mockResolvedValueOnce(5); // 5th failure — hits LOGIN_MAX_ATTEMPTS
+
+      await service.validateUser("admin@test.com", "wrong");
+
+      expect(redisMock.setex).toHaveBeenCalledWith(
+        expect.stringContaining('loginlock:platform:admin@test.com'),
+        expect.any(Number),
+        '1',
+      );
+    });
+
+    it("clears failed-attempt tracking on a successful login", async () => {
+      const hash = await bcrypt.hash("secret", 10);
+      userRepoMock.createQueryBuilder.mockReturnValue(
+        createQueryBuilderMock({
+          id: "u1",
+          email: "admin@test.com",
+          passwordHash: hash,
+          role: "SUPER_ADMIN",
+        }),
+      );
+      userRepoMock.update.mockResolvedValueOnce({});
+
+      await service.validateUser('admin@test.com', 'secret');
+
+      expect(redisMock.del).toHaveBeenCalledWith(
+        expect.stringContaining('loginfail:platform:admin@test.com'),
+      );
+      expect(redisMock.del).toHaveBeenCalledWith(
+        expect.stringContaining('loginlock:platform:admin@test.com'),
+      );
     });
   });
 
