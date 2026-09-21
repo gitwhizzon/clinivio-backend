@@ -69,6 +69,11 @@ export class PatientPortalService {
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   private async resolveTenantBySlug(slug: string): Promise<Tenant> {
+    // TypeORM's findOne() silently drops a `where` key whose value is
+    // undefined instead of matching nothing — without this guard, an unset
+    // slug would return the first active tenant (by insertion order) rather
+    // than correctly failing, e.g. for an unregistered subdomain.
+    if (!slug) throw new NotFoundException('Hospital not found');
     const tenant = await this.platformDs
       .getRepository(Tenant)
       .findOne({ where: { slug, isActive: true } });
@@ -77,6 +82,8 @@ export class PatientPortalService {
   }
 
   private async resolveTenantById(tenantId: string): Promise<Tenant> {
+    // Same TypeORM undefined-where footgun as resolveTenantBySlug above.
+    if (!tenantId) throw new NotFoundException('Tenant not found');
     const tenant = await this.platformDs
       .getRepository(Tenant)
       .findOne({ where: { id: tenantId, isActive: true } });
