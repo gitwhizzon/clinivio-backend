@@ -28,6 +28,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared libs
+        # apps/api resolves @mediflow/database and @mediflow/shared through
+        # their compiled dist/, not live source — pr-checks.yml already does
+        # this before typechecking; this job needs it too before running jest.
+        run: |
+          pnpm --filter @mediflow/database build
+          pnpm --filter @mediflow/shared build
+
       - name: Run unit tests
         working-directory: apps/api
         env:
@@ -59,6 +67,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build shared libs
+        run: |
+          pnpm --filter @mediflow/database build
+          pnpm --filter @mediflow/shared build
 
       - name: Run E2E tests against Neon test branch
         working-directory: apps/api
