@@ -347,10 +347,11 @@ describe('UsersService', () => {
 
     it("allows an ADMIN to update another user's password and isActive", async () => {
       userRepoMock.findOne.mockResolvedValueOnce(targetUser);
-      const hashSpy = jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValue('hashed-password' as never);
 
+      // Real bcrypt.hash instead of jest.spyOn(bcrypt, 'hash') — spying on
+      // bcrypt's export throws "Cannot redefine property: hash" on Linux CI
+      // (its native binding isn't configurable there like it is on Windows),
+      // and verifying the hash actually matches is a stronger assertion anyway.
       await service.update(
         'target-user',
         TENANT_ID,
@@ -358,11 +359,13 @@ describe('UsersService', () => {
         { id: 'admin-user', role: Role.ADMIN },
       );
 
-      expect(userRepoMock.update).toHaveBeenCalledWith('target-user', {
-        isActive: false,
-        passwordHash: 'hashed-password',
-      });
-      hashSpy.mockRestore();
+      expect(userRepoMock.update).toHaveBeenCalledTimes(1);
+      const [id, patch] = userRepoMock.update.mock.calls[0];
+      expect(id).toBe('target-user');
+      expect(patch.isActive).toBe(false);
+      await expect(
+        bcrypt.compare('ResetByAdmin123', patch.passwordHash),
+      ).resolves.toBe(true);
     });
 
     it("throws ForbiddenException when an admin tries to change their own password via this endpoint", async () => {
