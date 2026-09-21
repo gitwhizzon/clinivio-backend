@@ -388,6 +388,24 @@ export class PatientPortalService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  // ── Hospital profile (unauthenticated — shown on the login page) ─────────────
+
+  async getHospitalProfile(tenantId: string) {
+    const tenant = await this.resolveTenantById(tenantId);
+    // Only branding fields — never gstin, drugLicenseNo, whatsapp credentials,
+    // or anything else on Tenant that isn't meant for an anonymous visitor.
+    return {
+      name: tenant.name,
+      tagline: tenant.tagline,
+      city: tenant.city,
+      state: tenant.state,
+      phone: tenant.phone,
+      email: tenant.email,
+      website: tenant.website,
+      logoUrl: tenant.logoUrl,
+    };
+  }
+
   // ── Doctors & Slots (for booking) ─────────────────────────────────────────────
 
   async getDoctors(tenantId: string) {

@@ -238,6 +238,15 @@ export class PatientPortalController {
 
   // ── Discovery (public — for booking flow) ─────────────────────────────────────
 
+  @Get('public/hospital-profile')
+  @ApiOperation({
+    summary: 'Hospital branding shown on the tenant login page (requires X-Tenant-Slug header)',
+  })
+  getHospitalProfile(@Request() req: any) {
+    const tenantId: string = req.headers['x-tenant-id'] ?? req.tenantId;
+    return this.svc.getHospitalProfile(tenantId);
+  }
+
   @Get('public/doctors')
   @ApiOperation({
     summary: 'List available doctors (requires X-Tenant-Slug header)',
