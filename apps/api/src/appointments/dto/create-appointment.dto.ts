@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitType, AppointmentType } from '@mediflow/database';
@@ -60,4 +61,12 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsDateString()
   scheduledAt?: string;
+
+  // Accepted so the booking form's "Collect payment at billing counter"
+  // checkbox doesn't trip the global whitelist validator — not yet read
+  // anywhere downstream (every appointment starts PENDING regardless).
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  payAtCounter?: boolean;
 }
