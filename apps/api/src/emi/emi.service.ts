@@ -28,6 +28,7 @@ import {
   InvoiceType,
   DiscountType,
   TenantEntityManager,
+  ILike,
   In,
 } from "@mediflow/database";
 
@@ -74,11 +75,20 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export class EmiService {
   constructor(private readonly db: TenantEntityManager) {}
 
+  // MAX-based — see patients.service.ts generateUHID for why COUNT-based
+  // sequential IDs collide after any deletion. No DB unique constraint on
+  // receiptNumber, so a collision wouldn't throw — it would silently
+  // produce two receipts sharing a number.
   private async generateReceiptNumber(tenantId: string): Promise<string> {
-    const count = await this.db
-      .repo(EmiInstallment)
-      .count({ where: { tenantId } });
-    return `EMI-RCP-${String(count + 1).padStart(6, "0")}`;
+    const prefix = 'EMI-RCP-';
+    const last = await this.db.repo(EmiInstallment).findOne({
+      where: { tenantId, receiptNumber: ILike(`${prefix}%`) },
+      order: { receiptNumber: 'DESC' },
+    });
+    const nextSeq = last
+      ? parseInt(last.receiptNumber!.slice(prefix.length), 10) + 1
+      : 1;
+    return `${prefix}${String(nextSeq).padStart(6, "0")}`;
   }
 
   private addPeriod(date: Date, frequency: EmiFrequency): Date {
@@ -160,8 +170,14 @@ export class EmiService {
                   ),
                 );
           const totalAmount = Math.max(0, r2(subtotal - discountAmount));
-          const invoiceCount = await invoiceRepo.count({ where: { tenantId } });
-          const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, "0")}`;
+          const invNumPrefix = 'INV-OPD-';
+          const lastInv = await invoiceRepo.findOne({
+            where: { tenantId, invoiceNumber: ILike(`${invNumPrefix}%`) },
+            order: { invoiceNumber: 'DESC' },
+          });
+          const invoiceNumber = `${invNumPrefix}${String(
+            lastInv ? parseInt(lastInv.invoiceNumber.slice(invNumPrefix.length), 10) + 1 : 1,
+          ).padStart(6, "0")}`;
           invoice = await invoiceRepo.save(
             invoiceRepo.create({
               tenantId,

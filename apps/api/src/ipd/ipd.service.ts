@@ -26,6 +26,7 @@ import {
   InvoiceType,
   PaymentStatus,
   TenantEntityManager,
+  ILike,
 } from '@mediflow/database';
 
 export class AdmitPatientDto {
@@ -96,12 +97,33 @@ export class SaveDischargeSummaryDto {
 export class IpdService {
   constructor(private readonly db: TenantEntityManager) {}
 
+  // MAX-based — see patients.service.ts generateUHID for why COUNT-based
+  // sequential IDs collide after any deletion. admissionNumber has a real
+  // DB unique constraint (tenant_admission_number_unique), so a collision
+  // here throws rather than silently duplicating.
   private async generateAdmissionNumber(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.db
-      .repo(IPDAdmission)
-      .count({ where: { tenantId } });
-    return `IPD-${year}-${String(count + 1).padStart(6, '0')}`;
+    const prefix = `IPD-${year}-`;
+    const last = await this.db.repo(IPDAdmission).findOne({
+      where: { tenantId, admissionNumber: ILike(`${prefix}%`) },
+      order: { admissionNumber: 'DESC' },
+    });
+    const nextSeq = last
+      ? parseInt(last.admissionNumber.slice(prefix.length), 10) + 1
+      : 1;
+    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
+  }
+
+  private async generateIpdInvoiceNumber(tenantId: string, em: any): Promise<string> {
+    const prefix = 'INV-IPD-';
+    const last = await em.getRepository(Invoice).findOne({
+      where: { tenantId, invoiceNumber: ILike(`${prefix}%`) },
+      order: { invoiceNumber: 'DESC' },
+    });
+    const nextSeq = last
+      ? parseInt(last.invoiceNumber.slice(prefix.length), 10) + 1
+      : 1;
+    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
   }
 
   private async loadAdmission(id: string) {
@@ -122,70 +144,82 @@ export class IpdService {
   }
 
   async admitPatient(tenantId: string, dto: AdmitPatientDto) {
-    return this.db.transaction(async (em) => {
-      const admissionRepo = em.getRepository(IPDAdmission);
-      const bedRepo = em.getRepository(Bed);
+    // A failed INSERT aborts the whole Postgres transaction, not just that
+    // one statement — so closing the residual race on admissionNumber means
+    // retrying the entire transaction (bed check included), not just the
+    // generate+save step, unlike the simpler single-insert retries elsewhere.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.db.transaction(async (em) => {
+          const admissionRepo = em.getRepository(IPDAdmission);
+          const bedRepo = em.getRepository(Bed);
 
-      const bed = await bedRepo.findOne({ where: { id: dto.bedId, tenantId } });
-      if (!bed) throw new NotFoundException('Bed not found');
-      if (bed.status !== BedStatus.AVAILABLE)
-        throw new ConflictException('Bed is not available');
+          const bed = await bedRepo.findOne({ where: { id: dto.bedId, tenantId } });
+          if (!bed) throw new NotFoundException('Bed not found');
+          if (bed.status !== BedStatus.AVAILABLE)
+            throw new ConflictException('Bed is not available');
 
-      const admissionNumber = await this.generateAdmissionNumber(tenantId);
+          const admissionNumber = await this.generateAdmissionNumber(tenantId);
 
-      const admission = await admissionRepo.save(
-        admissionRepo.create({
-          tenantId,
-          patientId: dto.patientId,
-          attendingDoctorId: dto.attendingDoctorId,
-          bedId: dto.bedId,
-          roomId: bed.roomId,
-          appointmentId: dto.appointmentId ?? null,
-          admissionNumber,
-          admissionReason: dto.admissionReason,
-          referredBy: dto.referredBy ?? null,
-          opinionObtainedBy: dto.opinionObtainedBy ?? null,
-          estimatedDischargeAt: dto.estimatedDischargeAt
-            ? new Date(dto.estimatedDischargeAt)
-            : null,
-          notes: dto.notes ?? null,
-          status: IPDAdmissionStatus.ADMITTED,
-          admittedAt: new Date(),
-        }),
-      );
+          const admission = await admissionRepo.save(
+            admissionRepo.create({
+              tenantId,
+              patientId: dto.patientId,
+              attendingDoctorId: dto.attendingDoctorId,
+              bedId: dto.bedId,
+              roomId: bed.roomId,
+              appointmentId: dto.appointmentId ?? null,
+              admissionNumber,
+              admissionReason: dto.admissionReason,
+              referredBy: dto.referredBy ?? null,
+              opinionObtainedBy: dto.opinionObtainedBy ?? null,
+              estimatedDischargeAt: dto.estimatedDischargeAt
+                ? new Date(dto.estimatedDischargeAt)
+                : null,
+              notes: dto.notes ?? null,
+              status: IPDAdmissionStatus.ADMITTED,
+              admittedAt: new Date(),
+            }),
+          );
 
-      await bedRepo.update(dto.bedId, { status: BedStatus.OCCUPIED });
+          await bedRepo.update(dto.bedId, { status: BedStatus.OCCUPIED });
 
-      // Create a pending admission invoice so billing counter can collect payment
-      const invoiceCount = await em
-        .getRepository(Invoice)
-        .count({ where: { tenantId } });
-      const invoiceNumber = `INV-IPD-${String(invoiceCount + 1).padStart(6, '0')}`;
-      await em.getRepository(Invoice).save(
-        em.getRepository(Invoice).create({
-          tenantId,
-          patientId: dto.patientId,
-          ipdAdmissionId: admission.id,
-          appointmentId: dto.appointmentId ?? null,
-          invoiceNumber,
-          invoiceType: InvoiceType.PACKAGE,
-          lineItems: [
-            { description: 'IPD Admission — Bed & Service Charges', amount: 0 },
-          ],
-          subtotal: '0',
-          discountAmount: '0',
-          taxableAmount: '0',
-          cgstAmount: '0',
-          sgstAmount: '0',
-          igstAmount: '0',
-          totalAmount: '0',
-          paymentStatus: PaymentStatus.PENDING,
-          notes: `Admission: ${admissionNumber}`,
-        }),
-      );
+          // Create a pending admission invoice so billing counter can collect payment
+          const invoiceNumber = await this.generateIpdInvoiceNumber(tenantId, em);
+          await em.getRepository(Invoice).save(
+            em.getRepository(Invoice).create({
+              tenantId,
+              patientId: dto.patientId,
+              ipdAdmissionId: admission.id,
+              appointmentId: dto.appointmentId ?? null,
+              invoiceNumber,
+              invoiceType: InvoiceType.PACKAGE,
+              lineItems: [
+                { description: 'IPD Admission — Bed & Service Charges', amount: 0 },
+              ],
+              subtotal: '0',
+              discountAmount: '0',
+              taxableAmount: '0',
+              cgstAmount: '0',
+              sgstAmount: '0',
+              igstAmount: '0',
+              totalAmount: '0',
+              paymentStatus: PaymentStatus.PENDING,
+              notes: `Admission: ${admissionNumber}`,
+            }),
+          );
 
-      return this.loadAdmission(admission.id);
-    });
+          return this.loadAdmission(admission.id);
+        });
+      } catch (err: any) {
+        const isAdmissionNumberCollision =
+          err?.code === '23505' &&
+          String(
+            err?.constraint ?? err?.driverError?.constraint ?? '',
+          ).includes('admission_number');
+        if (!isAdmissionNumberCollision || attempt >= 5) throw err;
+      }
+    }
   }
 
   async findAll(

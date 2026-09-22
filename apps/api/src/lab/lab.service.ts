@@ -118,10 +118,20 @@ export class LabService {
     @InjectDataSource() private readonly platformDs: DataSource,
   ) {}
 
+  // MAX-based — see patients.service.ts generateUHID for why COUNT-based
+  // sequential IDs collide after any deletion. orderNumber has a real DB
+  // unique constraint (tenant_lab_order_number_unique).
   private async generateOrderNumber(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.db.repo(LabOrder).count({ where: { tenantId } });
-    return `LAB-${year}-${String(count + 1).padStart(6, '0')}`;
+    const prefix = `LAB-${year}-`;
+    const last = await this.db.repo(LabOrder).findOne({
+      where: { tenantId, orderNumber: ILike(`${prefix}%`) },
+      order: { orderNumber: 'DESC' },
+    });
+    const nextSeq = last
+      ? parseInt(last.orderNumber.slice(prefix.length), 10) + 1
+      : 1;
+    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
   }
 
   private async loadOrder(id: string) {
@@ -218,21 +228,37 @@ export class LabService {
     if (tests.length !== dto.testIds.length)
       throw new BadRequestException('One or more test IDs are invalid');
 
-    const orderNumber = await this.generateOrderNumber(tenantId);
-
-    const order = await this.db.repo(LabOrder).save(
-      this.db.repo(LabOrder).create({
-        tenantId,
-        orderNumber,
-        patientId: dto.patientId,
-        orderedById: dto.orderedById,
-        appointmentId: dto.appointmentId ?? null,
-        priority: dto.priority ?? 'ROUTINE',
-        clinicalNotes: dto.clinicalNotes ?? null,
-        sampleType: dto.sampleType ?? null,
-        status: LabOrderStatus.PENDING,
-      }),
-    );
+    // Two concurrent orders for the same tenant can both read the same
+    // "next" order number before either commits — retry with a freshly
+    // generated one on that specific collision.
+    let order: LabOrder;
+    let orderNumber: string;
+    for (let attempt = 1; ; attempt++) {
+      orderNumber = await this.generateOrderNumber(tenantId);
+      try {
+        order = await this.db.repo(LabOrder).save(
+          this.db.repo(LabOrder).create({
+            tenantId,
+            orderNumber,
+            patientId: dto.patientId,
+            orderedById: dto.orderedById,
+            appointmentId: dto.appointmentId ?? null,
+            priority: dto.priority ?? 'ROUTINE',
+            clinicalNotes: dto.clinicalNotes ?? null,
+            sampleType: dto.sampleType ?? null,
+            status: LabOrderStatus.PENDING,
+          }),
+        );
+        break;
+      } catch (err: any) {
+        const isOrderNumberCollision =
+          err?.code === '23505' &&
+          String(err?.constraint ?? err?.driverError?.constraint ?? '').includes(
+            'order_number',
+          );
+        if (!isOrderNumberCollision || attempt >= 5) throw err;
+      }
+    }
 
     const items = tests.map((test) =>
       this.db.repo(LabOrderItem).create({

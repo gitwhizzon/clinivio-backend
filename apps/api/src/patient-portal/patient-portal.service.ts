@@ -37,6 +37,7 @@ import {
   VisitType,
   TenantDataSourceRegistry,
   DataSource,
+  ILike,
 } from "@mediflow/database";
 import {
   PatientRegisterDto,
@@ -142,21 +143,42 @@ export class PatientPortalService {
       }
       patient = found;
     } else {
-      const count = await patientRepo.count({ where: { tenantId: tenant.id } });
-      const uhid = `UHID-${String(count + 1).padStart(6, '0')}`;
-      patient = await patientRepo.save(
-        patientRepo.create({
-          tenantId: tenant.id,
-          uhid,
-          firstName: dto.firstName,
-          lastName: dto.lastName ?? null,
-          phone: dto.phone,
-          email: dto.email ?? null,
-          dob: dto.dob ?? null,
-          gender: dto.gender ?? null,
-          isActive: true,
-        }),
-      );
+      // MAX-based, with retry-on-collision — same fragility and fix as
+      // PatientsService.generateUHID (this writes to the same patients
+      // table and the same tenant_id+uhid unique constraint, just under a
+      // different prefix for self-registered patients).
+      const prefix = 'UHID-';
+      for (let attempt = 1; ; attempt++) {
+        const last = await patientRepo.findOne({
+          where: { tenantId: tenant.id, uhid: ILike(`${prefix}%`) },
+          order: { uhid: 'DESC' },
+        });
+        const nextSeq = last ? parseInt(last.uhid.slice(prefix.length), 10) + 1 : 1;
+        const uhid = `${prefix}${String(nextSeq).padStart(6, '0')}`;
+        try {
+          patient = await patientRepo.save(
+            patientRepo.create({
+              tenantId: tenant.id,
+              uhid,
+              firstName: dto.firstName,
+              lastName: dto.lastName ?? null,
+              phone: dto.phone,
+              email: dto.email ?? null,
+              dob: dto.dob ?? null,
+              gender: dto.gender ?? null,
+              isActive: true,
+            }),
+          );
+          break;
+        } catch (err: any) {
+          const isUhidCollision =
+            err?.code === '23505' &&
+            String(err?.constraint ?? err?.driverError?.constraint ?? '').includes(
+              'uhid',
+            );
+          if (!isUhidCollision || attempt >= 5) throw err;
+        }
+      }
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);

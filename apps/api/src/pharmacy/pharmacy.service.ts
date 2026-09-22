@@ -268,10 +268,18 @@ export class PharmacyService {
         }
 
         const totalAmount = r2(subtotal + totalCgst + totalSgst);
-        const invoiceCount = await this.db
-          .repo(Invoice)
-          .count({ where: { tenantId } });
-        const invoiceNumber = `INV-PHR-${String(invoiceCount + 1).padStart(6, '0')}`;
+        // MAX-based — see patients.service.ts generateUHID for why
+        // COUNT-based sequential IDs collide after any deletion. No DB
+        // unique constraint on invoiceNumber, so a collision wouldn't
+        // throw — it would silently create two invoices sharing a number.
+        const invNumPrefix = 'INV-PHR-';
+        const lastInv = await this.db.repo(Invoice).findOne({
+          where: { tenantId, invoiceNumber: ILike(`${invNumPrefix}%`) },
+          order: { invoiceNumber: 'DESC' },
+        });
+        const invoiceNumber = `${invNumPrefix}${String(
+          lastInv ? parseInt(lastInv.invoiceNumber.slice(invNumPrefix.length), 10) + 1 : 1,
+        ).padStart(6, '0')}`;
         const savedInvoice = await this.db.repo(Invoice).save(
           this.db.repo(Invoice).create({
             tenantId,
@@ -528,12 +536,19 @@ export class PharmacyService {
         invoiceType: InvoiceType.PHARMACY,
       },
     });
-    const invoiceCount = await this.db
-      .repo(Invoice)
-      .count({ where: { tenantId } });
-    const invoiceNumber =
-      existing?.invoiceNumber ??
-      `INV-PHR-${String(invoiceCount + 1).padStart(6, '0')}`;
+    let invoiceNumber = existing?.invoiceNumber;
+    if (!invoiceNumber) {
+      // MAX-based — see patients.service.ts generateUHID for why
+      // COUNT-based sequential IDs collide after any deletion.
+      const invNumPrefix = 'INV-PHR-';
+      const lastInv = await this.db.repo(Invoice).findOne({
+        where: { tenantId, invoiceNumber: ILike(`${invNumPrefix}%`) },
+        order: { invoiceNumber: 'DESC' },
+      });
+      invoiceNumber = `${invNumPrefix}${String(
+        lastInv ? parseInt(lastInv.invoiceNumber.slice(invNumPrefix.length), 10) + 1 : 1,
+      ).padStart(6, '0')}`;
+    }
 
     let pharmacyInvoiceId: string;
     if (existing) {

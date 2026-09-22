@@ -23,6 +23,7 @@ import {
   DiscountType,
   PharmacyOrderStatus,
   TenantEntityManager,
+  ILike,
 } from '@mediflow/database';
 import { KafkaProducerService } from '../kafka/kafka-producer.service';
 import { KAFKA_TOPICS } from '@mediflow/shared';
@@ -207,8 +208,18 @@ export class AppointmentsService {
           0,
           Math.round((subtotal - discountAmount) * 100) / 100,
         );
-        const invoiceCount = await invoiceRepo.count({ where: { tenantId } });
-        const invoiceNumber = `INV-OPD-${String(invoiceCount + 1).padStart(6, '0')}`;
+        // MAX-based — see patients.service.ts generateUHID for why
+        // COUNT-based sequential IDs collide after any deletion. No DB
+        // unique constraint on invoiceNumber, so a collision wouldn't even
+        // throw — it would silently create two invoices sharing a number.
+        const invNumPrefix = 'INV-OPD-';
+        const lastInv = await invoiceRepo.findOne({
+          where: { tenantId, invoiceNumber: ILike(`${invNumPrefix}%`) },
+          order: { invoiceNumber: 'DESC' },
+        });
+        const invoiceNumber = `${invNumPrefix}${String(
+          lastInv ? parseInt(lastInv.invoiceNumber.slice(invNumPrefix.length), 10) + 1 : 1,
+        ).padStart(6, '0')}`;
         invoice = await invoiceRepo.save(
           invoiceRepo.create({
             tenantId,

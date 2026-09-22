@@ -23,6 +23,7 @@ import {
   PaymentStatus,
   DiscountType,
   TenantEntityManager,
+  ILike,
 } from '@mediflow/database';
 
 class LineItem {
@@ -150,16 +151,26 @@ function calculateGST(
 export class InvoicesService {
   constructor(private readonly db: TenantEntityManager) {}
 
+  // MAX-based, not COUNT-based — a COUNT drops whenever any invoice row is
+  // deleted/voided, and the next "count + 1" then collides with whichever
+  // invoice number already occupies it. invoiceNumber has no DB uniqueness
+  // constraint, so a collision here wouldn't even throw — it would silently
+  // create two invoices sharing the same number.
   private async generateInvoiceNumber(
     tenantId: string,
     type: InvoiceType,
   ): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.db
-      .repo(Invoice)
-      .count({ where: { tenantId, invoiceType: type } });
     const prefix = type.slice(0, 3).toUpperCase();
-    return `INV-${prefix}-${year}-${String(count + 1).padStart(6, '0')}`;
+    const numberPrefix = `INV-${prefix}-${year}-`;
+    const last = await this.db.repo(Invoice).findOne({
+      where: { tenantId, invoiceType: type, invoiceNumber: ILike(`${numberPrefix}%`) },
+      order: { invoiceNumber: 'DESC' },
+    });
+    const nextSeq = last
+      ? parseInt(last.invoiceNumber.slice(numberPrefix.length), 10) + 1
+      : 1;
+    return `${numberPrefix}${String(nextSeq).padStart(6, '0')}`;
   }
 
   async create(tenantId: string, dto: CreateInvoiceDto) {
