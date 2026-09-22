@@ -53,10 +53,22 @@ export class PatientsService {
     @InjectDataSource() private readonly platformDs: DataSource,
   ) {}
 
+  // MAX-based, not COUNT-based: a COUNT drops whenever any patient row is
+  // deleted (data cleanup, GDPR erasure, etc.), and the next "count + 1"
+  // then collides with whichever UHID already occupies that number — this
+  // is exactly what "duplicate key value violates ... patients_tenant_id_uhid_key"
+  // means. MAX-based only ever moves forward. Still theoretically racy under
+  // two concurrent enrollments for the same tenant — create() below retries
+  // on that specific constraint violation to close that window too.
   private async generateUHID(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.db.repo(Patient).count({ where: { tenantId } });
-    return `MF-${year}-${String(count + 1).padStart(6, '0')}`;
+    const prefix = `MF-${year}-`;
+    const last = await this.db.repo(Patient).findOne({
+      where: { tenantId, uhid: ILike(`${prefix}%`) },
+      order: { uhid: 'DESC' },
+    });
+    const nextSeq = last ? parseInt(last.uhid.slice(prefix.length), 10) + 1 : 1;
+    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
   }
 
   async create(tenantId: string, dto: CreatePatientDto) {
@@ -77,30 +89,46 @@ export class PatientsService {
       familyId = family.id;
     }
 
-    const uhid = await this.generateUHID(tenantId);
-    const patient = await this.db.repo(Patient).save(
-      this.db.repo(Patient).create({
-        tenantId,
-        familyId,
-        uhid,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        whatsappPhone,
-        hasWhatsapp: dto.hasWhatsapp ?? true,
-        email: dto.email,
-        dob: dto.dob ?? null,
-        gender: dto.gender as any,
-        bloodGroup: dto.bloodGroup,
-        abhaId: dto.abhaId,
-        preferredLanguage: (dto.preferredLanguage as any) ?? 'EN',
-        address: dto.address,
-        emergencyContactName: dto.emergencyContactName,
-        emergencyContactPhone: dto.emergencyContactPhone,
-        consentGivenAt: dto.consentGiven ? new Date() : null,
-        consentVersion: dto.consentGiven ? '1.0' : null,
-      }),
-    );
+    // Two concurrent enrollments for the same tenant can both read the same
+    // "next" UHID before either commits — retry with a freshly generated one
+    // on that specific collision rather than surfacing a raw DB error.
+    let patient: Patient;
+    for (let attempt = 1; ; attempt++) {
+      const uhid = await this.generateUHID(tenantId);
+      try {
+        patient = await this.db.repo(Patient).save(
+          this.db.repo(Patient).create({
+            tenantId,
+            familyId,
+            uhid,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            phone: dto.phone,
+            whatsappPhone,
+            hasWhatsapp: dto.hasWhatsapp ?? true,
+            email: dto.email,
+            dob: dto.dob ?? null,
+            gender: dto.gender as any,
+            bloodGroup: dto.bloodGroup,
+            abhaId: dto.abhaId,
+            preferredLanguage: (dto.preferredLanguage as any) ?? 'EN',
+            address: dto.address,
+            emergencyContactName: dto.emergencyContactName,
+            emergencyContactPhone: dto.emergencyContactPhone,
+            consentGivenAt: dto.consentGiven ? new Date() : null,
+            consentVersion: dto.consentGiven ? '1.0' : null,
+          }),
+        );
+        break;
+      } catch (err: any) {
+        const isUhidCollision =
+          err?.code === '23505' &&
+          String(err?.constraint ?? err?.driverError?.constraint ?? '').includes(
+            'uhid',
+          );
+        if (!isUhidCollision || attempt >= 5) throw err;
+      }
+    }
 
     // Set as primary patient if family has none
     await this.db
