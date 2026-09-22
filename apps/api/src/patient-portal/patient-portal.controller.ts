@@ -22,6 +22,7 @@ import {
   authCookieOptions,
   PATIENT_ACCESS_TOKEN_COOKIE,
 } from '@mediflow/shared';
+import { TenantDataSourceRegistry } from '@mediflow/database';
 import { PatientPortalService } from './patient-portal.service';
 import {
   PatientRegisterDto,
@@ -39,7 +40,10 @@ const PatientJwtGuard = () => UseGuards(AuthGuard('patient-jwt'));
 @ApiTags('Patient Portal')
 @Controller('patient-portal')
 export class PatientPortalController {
-  constructor(private readonly svc: PatientPortalService) {}
+  constructor(
+    private readonly svc: PatientPortalService,
+    private readonly registry: TenantDataSourceRegistry,
+  ) {}
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -242,37 +246,35 @@ export class PatientPortalController {
   @ApiOperation({
     summary: 'Hospital branding shown on the tenant login page (requires X-Tenant-Slug header)',
   })
-  getHospitalProfile(@Request() req: any) {
-    const tenantId: string = req.headers['x-tenant-id'] ?? req.tenantId;
-    return this.svc.getHospitalProfile(tenantId);
+  getHospitalProfile() {
+    return this.svc.getHospitalProfile(this.registry.currentTenantId ?? '');
   }
 
   @Get('public/doctors')
   @ApiOperation({
     summary: 'List available doctors (requires X-Tenant-Slug header)',
   })
-  getDoctors(@Request() req: any) {
-    // tenantId is injected by TenantContextMiddleware via X-Tenant-Slug header
-    const tenantId: string = req.headers['x-tenant-id'] ?? req.tenantId;
-    return this.svc.getDoctors(tenantId);
+  getDoctors() {
+    // TenantContextMiddleware resolves X-Tenant-Slug into the current
+    // AsyncLocalStorage tenant context (registry.currentTenantId) — req.tenantId
+    // is never actually set on the Express request, and req.headers['x-tenant-id']
+    // is never sent by the frontend, so reading either always returned undefined.
+    return this.svc.getDoctors(this.registry.currentTenantId ?? '');
   }
 
   @Get('public/departments')
   @ApiOperation({ summary: 'List departments (requires X-Tenant-Slug header)' })
-  getDepartments(@Request() req: any) {
-    const tenantId: string = req.headers['x-tenant-id'] ?? req.tenantId;
-    return this.svc.getDepartments(tenantId);
+  getDepartments() {
+    return this.svc.getDepartments(this.registry.currentTenantId ?? '');
   }
 
   @Get('public/slots')
   @ApiOperation({ summary: 'Get available slots for a doctor on a date' })
   getSlots(
-    @Request() req: any,
     @Query('doctorId') doctorId: string,
     @Query('date') date: string,
   ) {
-    const tenantId: string = req.headers['x-tenant-id'] ?? req.tenantId;
-    return this.svc.getAvailableSlots(tenantId, doctorId, date);
+    return this.svc.getAvailableSlots(this.registry.currentTenantId ?? '', doctorId, date);
   }
 
   // ── Discovery (authenticated — tenantId from JWT) ─────────────────────────────
